@@ -18,8 +18,13 @@ import { Database } from 'bun:sqlite';
 import { join } from 'path';
 import { homedir } from 'os';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { updateMasteryAfterAttempt, updateDailyStreak } from '../../services/analysis/MasteryTracker.js';
+import { updateDailyStreak } from '../../services/analysis/MasteryTracker.js';
 import { scheduleNextReview, applySchedule, getQuestionsDueNow } from '../../services/analysis/SM2Scheduler.js';
+import {
+  applyAdaptiveUpdate,
+  shouldInsertFollowUp,
+  makeFollowUpQuestion,
+} from '../../services/analysis/AdaptiveEngine.js';
 
 const DATA_DIR = process.env.VIBELEARN_DATA_DIR
   ? process.env.VIBELEARN_DATA_DIR.replace('~', homedir())
@@ -183,13 +188,19 @@ async function cmdQuiz(sessionOnly: boolean): Promise<void> {
   let correct = 0;
   let total = 0;
 
+  // Mutable queue — adaptive engine may insert follow-up questions
+  const queue = [...questions];
+  // Track IDs already in queue to prevent duplicate follow-ups
+  const queueIds = new Set(queue.map(q => q.id));
+
   console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  console.log(`  VibeLearn Quiz — ${questions.length} questions`);
+  console.log(`  VibeLearn Quiz — ${queue.length} questions`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
-  for (let i = 0; i < questions.length; i++) {
-    const q = questions[i];
-    const num = `Q${i + 1}/${questions.length}`;
+  let questionIndex = 0;
+  while (questionIndex < queue.length) {
+    const q = queue[questionIndex];
+    const num = `Q${questionIndex + 1}/${queue.length}`;
     const concept = q.concept_name ? ` [${q.concept_name}]` : '';
 
     console.log(`\n${num} (${q.difficulty})${concept}`);
@@ -219,20 +230,41 @@ async function cmdQuiz(sessionOnly: boolean): Promise<void> {
       }
     } else if (q.question_type === 'fill_in_blank') {
       userAnswer = (await ask('  Fill in: ')).trim();
+    } else if (q.question_type === 'ordering' && q.options_json) {
+      try {
+        const steps = JSON.parse(q.options_json) as string[];
+        steps.forEach((step, idx) => console.log(`  ${idx + 1}. ${step}`));
+        console.log('');
+        userAnswer = (await ask('  Enter correct order (e.g. 2,4,1,3): ')).trim();
+      } catch {
+        userAnswer = (await ask('  Your answer: ')).trim();
+      }
+    } else if (q.question_type === 'true_false') {
+      userAnswer = (await ask('  True or False? ')).trim().toLowerCase();
     } else {
-      // explain_code — free text
-      console.log('  (Type your explanation, then press Enter)');
+      // open_ended, spot_the_bug, code_reading — free text
+      if (q.question_type === 'open_ended') {
+        console.log('  (Open-ended — describe your reasoning, then press Enter)');
+      }
       userAnswer = (await ask('  Your answer: ')).trim();
     }
 
     const timeTaken = Date.now() - startTime;
-    const isCorrect = userAnswer.toLowerCase() === q.correct.toLowerCase();
 
-    if (isCorrect) {
+    // For open_ended questions there is no definitive correct/wrong
+    const isOpenEnded = q.question_type === 'open_ended';
+    let isCorrect = false;
+    if (!isOpenEnded && q.correct !== null) {
+      isCorrect = userAnswer.toLowerCase() === q.correct.toLowerCase();
+    }
+
+    if (isOpenEnded) {
+      console.log('\n  ✎ Open-ended noted.\n');
+    } else if (isCorrect) {
       console.log('\n  ✓ Correct!\n');
       correct++;
     } else {
-      console.log(`\n  ✗ Incorrect. Correct answer: ${q.correct}\n`);
+      console.log(`\n  ✗ Incorrect. Correct answer: ${q.correct ?? '(see explanation)'}\n`);
     }
 
     console.log(`  Explanation: ${q.explanation}\n`);
@@ -248,31 +280,50 @@ async function cmdQuiz(sessionOnly: boolean): Promise<void> {
         VALUES (?, ?, ?, ?, ?, ?)
       `, [randomUUID(), q.id, userAnswer, isCorrect ? 1 : 0, timeTaken, Math.floor(Date.now() / 1000)]);
 
-      // Update spaced-repetition schedule for this question
-      const schedule = scheduleNextReview({
-        isCorrect,
-        currentEaseFactor: q.ease_factor ?? 2.5,
-        currentIntervalDays: q.interval_days ?? 0,
-        currentRepetitions: q.repetitions ?? 0,
-        nowEpoch: Math.floor(Date.now() / 1000),
-      });
-      applySchedule(writeDb, q.id, schedule);
+      // Update spaced-repetition schedule (skip for synthetic follow-up questions)
+      if (!q.is_follow_up) {
+        const schedule = scheduleNextReview({
+          isCorrect,
+          currentEaseFactor: q.ease_factor ?? 2.5,
+          currentIntervalDays: q.interval_days ?? 0,
+          currentRepetitions: q.repetitions ?? 0,
+          nowEpoch: Math.floor(Date.now() / 1000),
+        });
+        applySchedule(writeDb, q.id, schedule);
+      }
 
-      // Update per-concept mastery score in vl_developer_profile
-      if (q.concept_name) {
+      // Apply adaptive level promotion/demotion (wraps updateMasteryAfterAttempt)
+      if (q.concept_name && !isOpenEnded) {
         const conceptRow = writeDb.query<{ category: string }, [string]>(
           `SELECT category FROM vl_concepts WHERE concept_name = ? LIMIT 1`
         ).get(q.concept_name);
-        updateMasteryAfterAttempt(writeDb, {
+
+        const adaptResult = applyAdaptiveUpdate(writeDb, {
           conceptName: q.concept_name,
           category: conceptRow?.category ?? 'general',
           isCorrect,
         });
+
+        if (adaptResult.promoted) {
+          console.log(`  🎉 Level up! ${q.concept_name}: ${adaptResult.previousLevel} → ${adaptResult.profile.current_level}\n`);
+        } else if (adaptResult.demoted) {
+          console.log(`  📉 Level dropped: ${q.concept_name}: ${adaptResult.previousLevel} → ${adaptResult.profile.current_level}\n`);
+        }
+
+        // Insert follow-up question at queue front if conditions met
+        if (shouldInsertFollowUp(q, isCorrect, adaptResult.profile.current_level, queueIds)) {
+          const followUp = makeFollowUpQuestion(q);
+          queue.splice(questionIndex + 1, 0, followUp);
+          queueIds.add(followUp.id);
+          console.log(`  ➕ Follow-up added: ${followUp.question.slice(0, 60)}...\n`);
+        }
       }
 
       // Update today's row in vl_daily_streaks
       updateDailyStreak(writeDb, isCorrect);
     } catch { /* silently skip attempt recording errors */ }
+
+    questionIndex++;
   }
 
   rl.close();
