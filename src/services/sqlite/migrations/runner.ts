@@ -36,6 +36,7 @@ export class MigrationRunner {
     this.addSessionCustomTitleColumn();
     this.createVibeLearnTables();
     this.alignDifficultyLevels();
+    this.widenQuestionTypeConstraint();
   }
 
   /**
@@ -1029,6 +1030,74 @@ export class MigrationRunner {
     this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(25, new Date().toISOString());
 
     logger.debug('DB', 'Difficulty level alignment complete (migration 25)');
+  }
+
+  /**
+   * Widen vl_questions.question_type CHECK constraint to all 7 POC types (migration 26)
+   *
+   * Original schema only allowed: multiple_choice, fill_in_blank, explain_code
+   * New schema allows all 7 types validated in belearn POC notebook 10:
+   *   multiple_choice, code_reading, spot_the_bug, fill_in_blank,
+   *   open_ended, true_false, ordering
+   *
+   * SQLite does not support ALTER TABLE to change CHECK constraints, so we
+   * recreate the table. Existing rows are preserved.
+   */
+  private widenQuestionTypeConstraint(): void {
+    const applied = this.db.prepare('SELECT version FROM schema_versions WHERE version = ?').get(26) as SchemaVersion | undefined;
+    if (applied) return;
+
+    logger.debug('DB', 'Widening vl_questions.question_type CHECK constraint (migration 26)');
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vl_questions_new (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        concept_id TEXT NOT NULL,
+        question_type TEXT CHECK(question_type IN (
+          'multiple_choice','code_reading','spot_the_bug',
+          'fill_in_blank','open_ended','true_false','ordering'
+        )),
+        difficulty TEXT,
+        snippet TEXT,
+        question TEXT NOT NULL,
+        options_json TEXT,
+        correct TEXT,
+        explanation TEXT,
+        follow_up_mid TEXT,
+        tags_json TEXT,
+        next_review_at INTEGER,
+        ease_factor REAL DEFAULT 2.5,
+        interval_days INTEGER DEFAULT 0,
+        repetitions INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `);
+
+    // Copy existing rows, mapping legacy explain_code → open_ended
+    this.db.run(`
+      INSERT OR IGNORE INTO vl_questions_new
+      SELECT
+        id, session_id, concept_id,
+        CASE question_type
+          WHEN 'explain_code' THEN 'open_ended'
+          ELSE question_type
+        END,
+        difficulty, snippet, question, options_json, correct,
+        explanation, follow_up_mid, tags_json,
+        next_review_at, ease_factor, interval_days, repetitions, created_at
+      FROM vl_questions
+    `);
+
+    this.db.run('DROP TABLE IF EXISTS vl_questions');
+    this.db.run('ALTER TABLE vl_questions_new RENAME TO vl_questions');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_questions_session ON vl_questions(session_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_questions_concept ON vl_questions(concept_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_questions_review ON vl_questions(next_review_at)');
+
+    this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(26, new Date().toISOString());
+
+    logger.debug('DB', 'vl_questions CHECK constraint widened (migration 26)');
   }
 
   /**
