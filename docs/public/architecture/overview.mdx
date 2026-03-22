@@ -9,17 +9,17 @@ VibeLearn has 6 core components:
 
 | Component | Description |
 |-----------|-------------|
-| **Hooks** (`src/hooks/`) | 5 TypeScript hooks — TypeScript → ESM, built to `plugin/scripts/` |
+| **Hooks** (`src/hooks/`) | 5 TypeScript hooks — compiled to ESM, built to `plugin/scripts/` |
 | **Worker Service** (`src/services/worker-service.ts`) | Express API on port 37778, Bun-managed, handles analysis asynchronously |
 | **Analysis Pipeline** (`src/services/analysis/`) | 4-stage pipeline: StackDetector → StaticAnalyzer → ConceptExtractor → QuizGenerator |
-| **Upstream Sync** (`src/services/sync/`) | HMAC-signed POST to api.vibelearn.dev; OfflineQueue for retry |
+| **Upstream Sync** (`src/services/sync/`) | HMAC-signed POST to `api.vibelearn.dev`; OfflineQueue for retry |
 | **Database** (`src/services/sqlite/`) | SQLite3 at `~/.vibelearn/vibelearn.db` |
 | **CLI** (`src/cli/vl/`) | `vl quiz`, `vl status`, `vl gaps`, `vl login` |
 
 ## Data Flow
 
 ```
-Claude Code Session
+Claude Code / Cursor Session
         │
         │  Hook events (SessionStart, PostToolUse, Stop...)
         ▼
@@ -62,7 +62,7 @@ Claude Code Session
 ## Session Lifecycle
 
 ```
-1. User starts coding in Claude Code
+1. User starts coding
         ↓
 2. SessionStart hook → worker health check → session init
         ↓
@@ -136,7 +136,7 @@ src/
 │   │   ├── DatabaseManager.ts
 │   │   └── migrations.ts
 │   └── worker/http/routes/
-│       ├── VibeLearnRoutes.ts      # 8 analysis + sync endpoints
+│       ├── VibeLearnRoutes.ts      # Analysis + sync endpoints
 │       ├── SessionRoutes.ts
 │       └── ...
 ├── cli/vl/

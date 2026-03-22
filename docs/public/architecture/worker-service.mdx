@@ -13,7 +13,7 @@ The VibeLearn worker is an Express.js HTTP server managed by Bun, running on por
 
 ## Startup
 
-The worker is started by `SessionStart` hook if not already running:
+The worker is started by the `SessionStart` hook if not already running:
 
 ```bash
 # Manual start
@@ -130,7 +130,7 @@ POST /sync
 
 ## LLM Provider Selection
 
-`createAgentRunner()` in VibeLearnRoutes creates a `(prompt: string) => Promise<string>` function that tries providers in order:
+`createAgentRunner()` in `VibeLearnRoutes` creates a `(prompt: string) => Promise<string>` function that tries providers in order:
 
 1. **Gemini** — if `VIBELEARN_GEMINI_API_KEY` is set in settings
 2. **OpenRouter** — if `VIBELEARN_OPENROUTER_API_KEY` is set
@@ -143,7 +143,7 @@ POST /sync
 tail -f ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log
 ```
 
-Log level controlled by `VIBELEARN_LOG_LEVEL` in settings.
+Log level controlled by `VIBELEARN_LOG_LEVEL` in settings (`debug`, `info`, `warn`, `error`).
 
 ## Route Registration
 

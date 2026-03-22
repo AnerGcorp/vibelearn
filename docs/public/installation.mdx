@@ -1,21 +1,37 @@
 ---
 title: Installation
-description: Install VibeLearn as a Claude Code plugin
+description: Install VibeLearn as a Claude Code plugin or in Cursor IDE
 ---
 
 ## Requirements
 
-- **Claude Code** with plugin support
+- **Claude Code** with plugin support (or Cursor IDE)
 - **Bun** — auto-installed if missing
 - **Node.js** 18+
 
-## Quick Install (Recommended)
+## Claude Code — Quick Install
 
 ```bash
 /plugin install vibelearn
 ```
 
 The plugin installs hooks, starts the worker service on port 37778, and runs the analysis pipeline automatically at the end of each session.
+
+## Cursor — Install from Source
+
+```bash
+git clone https://github.com/anergcorp/vibelearn.git
+cd vibelearn
+bun install && bun run build
+
+# Install hooks globally (recommended)
+bun run cursor:install -- user
+
+# Start the worker
+bun run worker:start
+```
+
+Restart Cursor to load the hooks.
 
 ## Configure an AI Provider
 
@@ -58,7 +74,7 @@ curl http://127.0.0.1:37778/api/readiness
 vl status
 ```
 
-## Install from Source
+## Install from Source (Claude Code)
 
 ```bash
 git clone https://github.com/anergcorp/vibelearn.git
@@ -67,7 +83,7 @@ npm install
 npm run build-and-sync
 ```
 
-The build compiles TypeScript → ESM hooks and ESM worker → bundles with esbuild. Output lands in `plugin/` and syncs to `~/.claude/plugins/marketplaces/vibelearn/`.
+The build compiles TypeScript → ESM hooks and the worker → bundles with esbuild. Output lands in `plugin/` and syncs to `~/.claude/plugins/marketplaces/vibelearn/`.
 
 ## File Locations
 
@@ -77,11 +93,12 @@ The build compiles TypeScript → ESM hooks and ESM worker → bundles with esbu
 | `~/.vibelearn/settings.json` | Settings (AI keys, worker config) |
 | `~/.vibelearn/config.json` | Auth config (written by `vl login`) |
 | `~/.vibelearn/logs/vibelearn-YYYY-MM-DD.log` | Worker logs |
-| `~/.claude/plugins/marketplaces/vibelearn/` | Installed plugin files |
+| `~/.claude/plugins/marketplaces/vibelearn/` | Installed plugin files (Claude Code) |
 
 ## Uninstall
 
 ```bash
+# Claude Code
 /plugin uninstall vibelearn
 ```
 

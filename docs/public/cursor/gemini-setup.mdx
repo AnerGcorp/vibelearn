@@ -5,7 +5,7 @@ description: Use VibeLearn in Cursor with Google's free Gemini API
 
 ## Why Gemini for Cursor
 
-When using Cursor without Claude Code, you need to configure an AI provider for VibeLearn's concept extraction and quiz generation. Gemini's free tier (1500 req/day) is more than sufficient.
+When using Cursor without Claude Code, you need to configure an AI provider for VibeLearn's concept extraction and quiz generation. Gemini's free tier (1500 req/day) is more than sufficient for daily use.
 
 ## Step 1: Get a Gemini API Key
 
@@ -59,4 +59,9 @@ vl quiz      # Quiz questions from your session
   "VIBELEARN_GEMINI_API_KEY": "AIza...",
   "VIBELEARN_OPENROUTER_API_KEY": "sk-or-..."
 }
+```
+
+**No quiz questions after session** — Check worker logs:
+```bash
+tail -f ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log | grep -i "gemini\|error"
 ```

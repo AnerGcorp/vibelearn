@@ -5,11 +5,11 @@ description: Use Google's Gemini API for concept extraction and quiz generation 
 
 ## Overview
 
-Gemini is the recommended AI provider for VibeLearn. The free tier provides **1500 requests/day** — more than enough for daily coding sessions.
+Gemini is the recommended AI provider for VibeLearn. The free tier provides **1500 requests/day** — sufficient for daily coding sessions.
 
 VibeLearn uses Gemini for two LLM calls per session:
-1. **Concept extraction** — identifies what you learned
-2. **Quiz generation** — creates questions per concept
+1. **Concept extraction** — identifies what you learned (`ConceptExtractor`)
+2. **Quiz generation** — creates questions per concept (`QuizGenerator`)
 
 ## Setup
 
@@ -25,7 +25,7 @@ Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and creat
 }
 ```
 
-That's it. VibeLearn checks for Gemini first in the provider priority order.
+That's it. VibeLearn checks for Gemini first in the provider priority order (Gemini → OpenRouter → Anthropic).
 
 ## Available Models
 
@@ -45,7 +45,7 @@ Override the default:
 
 ## Rate Limiting
 
-The free tier limit is 1500 requests/day. VibeLearn uses 2 requests per session (concept extraction + quiz generation), so you can analyze up to **750 sessions/day** on the free tier.
+The free tier limit is 1500 requests/day. VibeLearn uses 2 requests per session (concept extraction + quiz generation), giving you up to **750 sessions/day** on the free tier.
 
 Rate limiting is enabled by default:
 ```json
@@ -60,7 +60,13 @@ If you hit the limit, VibeLearn falls back to OpenRouter (if configured) or Anth
 
 **`API key not valid`** — Check the key is correctly copied from AI Studio. Keys start with `AIza`.
 
-**`RESOURCE_EXHAUSTED`** — Hit the daily quota. Resets at midnight Pacific time. Switch to OpenRouter as a fallback.
+**`RESOURCE_EXHAUSTED`** — Hit the daily quota. Resets at midnight Pacific time. Switch to OpenRouter as a fallback:
+```json
+{
+  "VIBELEARN_GEMINI_API_KEY": "AIza...",
+  "VIBELEARN_OPENROUTER_API_KEY": "sk-or-..."
+}
+```
 
 **No quiz questions after session** — Check worker logs:
 ```bash

@@ -31,6 +31,7 @@ EOF
 ## Step 3: Install Cursor Hooks
 
 ```bash
+# From the vibelearn repo directory
 bun run cursor:install -- user
 bun run worker:start
 ```
@@ -57,4 +58,15 @@ For maximum reliability, configure both:
 }
 ```
 
-VibeLearn tries Gemini first. If it fails or hits rate limits, it falls back to OpenRouter.
+VibeLearn tries Gemini first. If it fails or hits rate limits, it falls back to OpenRouter automatically.
+
+## Troubleshooting
+
+**No output / empty response** — Free models may be slow or at capacity. Try a different free model.
+
+**`402 Payment Required`** — Model requires credits. Switch to a `:free` model or add OpenRouter credits.
+
+**Check which provider was used:**
+```bash
+grep "provider" ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log | tail -5
+```

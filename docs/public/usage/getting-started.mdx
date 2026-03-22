@@ -5,7 +5,7 @@ description: Your first session with VibeLearn — what happens automatically
 
 ## The Basic Workflow
 
-VibeLearn runs silently in the background. You code normally in Claude Code, and after each session ends, it automatically:
+VibeLearn runs silently in the background. You code normally, and after each session ends, it automatically:
 
 1. Detects your tech stack
 2. Analyzes the files you edited
@@ -14,9 +14,34 @@ VibeLearn runs silently in the background. You code normally in Claude Code, and
 
 Then you run `vl quiz`.
 
-## What Gets Captured
+## Step 1: Install
 
-During your session, VibeLearn captures every **Write**, **Edit**, and **Bash** tool use via the `PostToolUse` hook:
+**Claude Code:**
+```bash
+/plugin install vibelearn
+```
+
+**Cursor:**
+```bash
+git clone https://github.com/anergcorp/vibelearn.git
+cd vibelearn && bun install && bun run build
+bun run cursor:install -- user
+bun run worker:start
+```
+
+## Step 2: Configure an AI Provider
+
+```json title="~/.vibelearn/settings.json"
+{
+  "VIBELEARN_GEMINI_API_KEY": "AIza..."
+}
+```
+
+Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (1500 req/day free).
+
+## Step 3: Code Normally
+
+Run an agent session. VibeLearn captures every **Write**, **Edit**, and **Bash** tool use via the `PostToolUse` hook:
 
 | Tool | What's captured |
 |------|----------------|
@@ -25,7 +50,7 @@ During your session, VibeLearn captures every **Write**, **Edit**, and **Bash** 
 | `Bash` | Command + output |
 | MCP tools | Tool name + inputs + outputs |
 
-## When Analysis Runs
+## Step 4: Analysis Runs Automatically
 
 Analysis runs **after the session ends** — when you stop the agent or it finishes its task. The 5-step pipeline takes 30–90 seconds depending on your LLM provider.
 
@@ -39,7 +64,7 @@ vl status
 # Mastered: 34 | In progress: 41 | Not started: 12
 ```
 
-## Your First Quiz
+## Step 5: Take the Quiz
 
 ```bash
 vl quiz
@@ -92,6 +117,7 @@ See [Private Tags](/usage/private-tags) for full details.
 
 ```bash
 vl login <api-key>
+vl login --status   # Check current auth
 ```
 
 This enables:

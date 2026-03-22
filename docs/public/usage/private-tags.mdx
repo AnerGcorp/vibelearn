@@ -11,7 +11,7 @@ Wrap any content in `<private>` tags to prevent it from being stored in the data
 Please review <private>my-api-key: sk-abc123</private> — is this config structure correct?
 ```
 
-The `<private>` tags and everything between them are stripped **at the hook layer** before any data reaches the worker or SQLite database.
+The `<private>` tags and everything between them are stripped **at the hook layer** before any data reaches the worker or SQLite database. VibeLearn never stores or syncs the private content.
 
 ## How It Works
 
@@ -29,7 +29,7 @@ UserPromptSubmit hook
       └─ sends sanitized prompt to worker
 ```
 
-The original prompt is **never stored** — only the sanitized version.
+The original prompt (with private content) reaches the AI unchanged. Only the version stored by VibeLearn is sanitized.
 
 ## Use Cases
 
@@ -63,7 +63,7 @@ Content **outside** `<private>` tags is captured normally:
 ## Best Practices
 
 - Use `<private>` for API keys, passwords, personal data, and internal business logic
-- The tag content is completely removed — the sanitized prompt still makes sense to Claude
+- The tag content is completely removed — the sanitized prompt still makes sense to the AI
 - Tags work in any prompt position: beginning, middle, or end
 - Nested tags are not supported — one level only
 
@@ -76,4 +76,4 @@ sqlite3 ~/.vibelearn/vibelearn.db \
   "SELECT content FROM observations ORDER BY created_at DESC LIMIT 5;"
 ```
 
-Private content will not appear.
+Private content will not appear in the results.

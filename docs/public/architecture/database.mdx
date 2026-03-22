@@ -9,17 +9,17 @@ description: SQLite schema — all VibeLearn tables explained
 ~/.vibelearn/vibelearn.db
 ```
 
-SQLite3. All vl-specific tables use the `vl_` prefix. Core session tables retain the original `sdk_sessions` and `observations` names.
+SQLite3. All VibeLearn-specific tables use the `vl_` prefix. Core session tables retain the original `sdk_sessions` and `observations` names.
 
 ## Core Tables (Session Tracking)
 
 ### `sdk_sessions`
 
-Tracks every Claude Code session.
+Tracks every session.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `content_session_id` | TEXT UNIQUE | Claude Code's session ID (from hook input) |
+| `content_session_id` | TEXT UNIQUE | The IDE's session ID (from hook input) |
 | `memory_session_id` | TEXT | SDK agent's internal session ID (enables resume) |
 | `project` | TEXT | Project name (workspace basename) |
 | `created_at` | TEXT | ISO timestamp |
@@ -41,7 +41,7 @@ Every tool use captured during sessions.
 
 ### `vl_concepts`
 
-Concepts extracted from sessions by ConceptExtractor.
+Concepts extracted from sessions by `ConceptExtractor`.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -55,7 +55,7 @@ Concepts extracted from sessions by ConceptExtractor.
 
 ### `vl_questions`
 
-Quiz questions generated per concept.
+Quiz questions generated per concept by `QuizGenerator`.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -98,7 +98,7 @@ Mastery tracking per concept name.
 
 ### `vl_stack_profiles`
 
-Tech stack detected per session.
+Tech stack detected per session by `StackDetector`.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -111,7 +111,7 @@ Tech stack detected per session.
 
 ### `vibelearn_session_summaries`
 
-Human-readable narrative per session.
+Human-readable narrative per session, produced by `ConceptExtractor`.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -137,7 +137,7 @@ Max attempts: 5. After that, status becomes `failed`.
 
 ### `vl_daily_streaks`
 
-Local streak cache. **Server is authoritative** — this is never trusted for official streak data.
+Local streak cache. **Server is authoritative** — this table is never trusted for official streak data.
 
 ## Migrations
 
@@ -146,5 +146,5 @@ Migrations run automatically on worker startup via `DatabaseManager`. Each migra
 ```typescript
 // src/services/sqlite/migrations.ts
 // Add a new migration at the end of the array
-{ id: 9, sql: `ALTER TABLE vl_concepts ADD COLUMN ...` }
+{ id: 9, sql: `ALTER TABLE vl_concepts ADD COLUMN my_new_column TEXT` }
 ```

@@ -5,7 +5,7 @@ description: Capture coding sessions in Cursor — learn from every agent sessio
 
 ## Overview
 
-VibeLearn works with Cursor via hook scripts. When a Cursor agent session ends, the same 5-step analysis pipeline runs (stack detection → concept extraction → quiz generation).
+VibeLearn works with Cursor via hook scripts. When a Cursor agent session ends, the same 5-step analysis pipeline runs: stack detection → static analysis → concept extraction → quiz generation → sync.
 
 ## Quick Install
 
@@ -56,11 +56,12 @@ vl gaps       # See weak areas
 | Feature | Claude Code | Cursor |
 |---------|-------------|--------|
 | Hooks | Native plugin hooks | Bash scripts in `.cursor/hooks/` |
-| Transcript | ✅ Available | ❌ Not available |
-| Analysis pipeline | ✅ Full (with transcript context) | ✅ Full (file edits only) |
-| Port | 37778 | 37778 |
+| Transcript access | Available | Not available |
+| Analysis pipeline | Full (with transcript context) | Full (file edits only) |
+| Worker port | 37778 | 37778 |
+| Installation | `/plugin install vibelearn` | `bun run cursor:install -- user` |
 
-The main limitation: Cursor doesn't provide transcript access, so concept extraction uses file edit observations only (still effective for most sessions).
+The main limitation: Cursor doesn't provide transcript access, so concept extraction uses file edit observations only. This is still effective for most sessions.
 
 ## Troubleshooting
 

@@ -29,7 +29,7 @@ npm run build-and-sync
 
 | Output | Source | Purpose |
 |--------|--------|---------|
-| `plugin/scripts/*-hook.js` | `src/hooks/*.ts` | Claude Code hook scripts |
+| `plugin/scripts/*-hook.js` | `src/hooks/*.ts` | Hook scripts |
 | `plugin/scripts/worker-service.cjs` | `src/services/worker-service.ts` | Worker bundle |
 | `plugin/scripts/vl-cli.cjs` | `src/cli/vl/index.ts` | `vl` CLI bundle |
 | `plugin/scripts/worker-wrapper.cjs` | pre-built | Bun process manager |
@@ -53,7 +53,7 @@ tail -f ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log
 
 1. Create `src/services/analysis/MyAnalyzer.ts`
 2. Add a new route in `src/services/worker/http/routes/VibeLearnRoutes.ts`
-3. Call it from `src/cli/handlers/summarize.ts` (the Stop hook dispatcher)
+3. Call it from `src/hooks/summarize.ts` (the Stop hook dispatcher)
 4. Add any new columns to `src/services/sqlite/migrations.ts` (increment migration ID)
 
 ## Adding a New vl CLI Command
@@ -82,13 +82,13 @@ Migrations run automatically on worker startup. Never modify existing migration 
 
 - TypeScript strict mode
 - ESM modules throughout (`import`/`export`, no `require`)
-- Hooks: always exit 0 (never block Claude Code)
+- Hooks: always exit 0 (never block the IDE)
 - Worker errors: log at ERROR level, continue execution
 - Analysis steps: independent — step failure must not block subsequent steps
 
 ## Testing
 
-VibeLearn uses real-world testing: install the plugin, run coding sessions, check `vl quiz`. The analysis pipeline is LLM-dependent and not unit-testable in a meaningful way.
+VibeLearn uses real-world testing: install the plugin, run coding sessions, check `vl quiz`. The analysis pipeline is LLM-dependent and not meaningfully unit-testable.
 
 For worker endpoint testing:
 ```bash
@@ -105,5 +105,7 @@ curl http://127.0.0.1:37778/api/health | jq .
 
 ```bash
 npm run build-and-sync
-# Artifacts in plugin/ are ready to publish to the Claude Code marketplace
+# Artifacts in plugin/ are ready to publish to the marketplace
 ```
+
+Plugin identity: `vibelearn@anergcorp`

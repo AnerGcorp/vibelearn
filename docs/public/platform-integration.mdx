@@ -4,15 +4,15 @@ description: Integrate VibeLearn's worker API into other IDEs and tools
 icon: plug
 ---
 
-## Worker API Quick Reference
+## Overview
 
-The VibeLearn worker runs on **port 37778** by default. All endpoints are `localhost`-only.
+VibeLearn's worker exposes a localhost HTTP API on port **37778**. Any IDE or tool can integrate with it by calling the session lifecycle endpoints — the same way the Claude Code and Cursor hooks do.
 
 ```bash
 # Health check
 curl http://127.0.0.1:37778/api/health
 
-# Readiness (used by hooks)
+# Readiness (used by hooks on startup)
 curl http://127.0.0.1:37778/api/readiness
 ```
 
@@ -57,18 +57,23 @@ SESSION_ID="unique-session-id"
 BASE="http://127.0.0.1:37778"
 
 curl -X POST "$BASE/api/vibelearn/analyze/stack" \
+  -H "Content-Type: application/json" \
   -d "{\"contentSessionId\":\"$SESSION_ID\"}"
 
 curl -X POST "$BASE/api/vibelearn/analyze/static" \
+  -H "Content-Type: application/json" \
   -d "{\"contentSessionId\":\"$SESSION_ID\"}"
 
 curl -X POST "$BASE/api/vibelearn/analyze/concepts" \
+  -H "Content-Type: application/json" \
   -d "{\"contentSessionId\":\"$SESSION_ID\",\"last_assistant_message\":\"\"}"
 
 curl -X POST "$BASE/api/vibelearn/analyze/quiz" \
+  -H "Content-Type: application/json" \
   -d "{\"contentSessionId\":\"$SESSION_ID\"}"
 
 curl -X POST "$BASE/api/vibelearn/sync" \
+  -H "Content-Type: application/json" \
   -d "{\"contentSessionId\":\"$SESSION_ID\"}"
 ```
 
@@ -110,7 +115,7 @@ Each step is independent — a failure in one does not block the rest.
 | `POST` | `/api/admin/restart` | Restart worker |
 | `POST` | `/api/admin/shutdown` | Shutdown worker |
 
-## Environment Variables
+## Settings Reference
 
 The worker reads from `~/.vibelearn/settings.json`:
 
@@ -127,4 +132,4 @@ The worker reads from `~/.vibelearn/settings.json`:
 - [ ] Call `/api/sessions/init` when a new session starts
 - [ ] Call `/api/sessions/observations` for each file edit/tool use (fire-and-forget)
 - [ ] Call the 5 analysis endpoints sequentially when session ends
-- [ ] All calls are localhost — no external network required
+- [ ] All calls are localhost — no external network required at runtime

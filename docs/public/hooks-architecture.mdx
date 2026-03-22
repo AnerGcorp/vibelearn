@@ -5,14 +5,14 @@ description: Lifecycle-driven learning capture — observe sessions from outside
 
 ## Core Principle
 
-**Observe the main Claude Code session from the outside, analyze in the background, quiz yourself after.**
+**Observe the session from the outside, analyze in the background, quiz yourself after.**
 
-VibeLearn never modifies your prompts or Claude's responses. It attaches to 5 lifecycle events, captures what you build, and runs a local analysis pipeline when the session ends.
+VibeLearn never modifies your prompts or the AI's responses. It attaches to 5 lifecycle events, captures what you build, and runs a local analysis pipeline when the session ends.
 
 ## The 5 Hooks
 
 ```
-Claude Code Session
+Session
        │
        ├── SessionStart      → check worker health, initialize session
        ├── UserPromptSubmit  → capture prompt, strip <private> tags
@@ -22,18 +22,21 @@ Claude Code Session
 ```
 
 ### SessionStart
-- Ensures the worker service is running (waits up to 15s with retries)
+- Ensures the worker service is running (polls up to 15s with retries)
 - Checks if the project is excluded via `VIBELEARN_EXCLUDED_PROJECTS`
+- Never blocks session start — always exits 0
 
 ### UserPromptSubmit
 - Strips `<private>...</private>` tags from the prompt before storage
 - Initializes the session in the worker (`POST /api/sessions/init`)
 - Returns `{"continue": true}` immediately — never delays prompts
+- Does **not** inject any content into the prompt
 
 ### PostToolUse
 - Captures every **Write**, **Edit**, **Bash** tool call
 - Records: `tool_type`, `file_path`, `content` (up to 10KB), `cwd`
 - Sends to worker as observations (fire-and-forget, non-blocking)
+- Skips tools listed in `VIBELEARN_SKIP_TOOLS`
 
 ### Stop (Analysis Trigger)
 Called when the agent loop ends. Triggers the 5 analysis steps sequentially:
@@ -46,11 +49,11 @@ Called when the agent loop ends. Triggers the 5 analysis steps sequentially:
 5. POST /api/vibelearn/sync             HMAC-signed sync to vibelearn.dev
 ```
 
-Each step is independent — a failure in one does not block the next.
+Each step is independent — a failure in one does not block the next. Each step has a 60s timeout.
 
 ### SessionEnd
 - Final cleanup
-- Exits with code 0 (never blocks Claude Code from closing)
+- Exits with code 0 (never blocks the IDE from closing)
 
 ## Exit Code Philosophy
 
@@ -58,7 +61,7 @@ Each step is independent — a failure in one does not block the next.
 |------|---------|
 | `0` | Success or graceful error — session continues normally |
 | `1` | Non-blocking error — shown to user on stderr, session continues |
-| `2` | Blocking error — fed to Claude for processing (rare) |
+| `2` | Blocking error — fed to the AI for processing (rare) |
 
 All hook errors exit with code `0` to prevent Windows Terminal tab closures.
 

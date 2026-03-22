@@ -5,10 +5,10 @@ description: Complete guide to VibeLearn's 5-stage hook lifecycle
 
 ## Overview
 
-VibeLearn implements 5 Claude Code lifecycle hooks. Each hook is a TypeScript file compiled to an ESM script and run as a subprocess by Claude Code.
+VibeLearn implements 5 lifecycle hooks. Each hook is a TypeScript file compiled to an ESM script and run as a subprocess by the IDE.
 
 ```
-Claude Code Agent Loop
+Agent Loop
         │
         ├─ SessionStart      src/hooks/session-start.ts
         ├─ UserPromptSubmit  src/hooks/user-prompt-submit.ts
@@ -40,9 +40,9 @@ Claude Code Agent Loop
 **What it does**:
 1. Strips `<private>...</private>` tags from the prompt (via `tag-stripping.ts`)
 2. Posts `{ contentSessionId, project, prompt }` to `POST /api/sessions/init`
-3. Returns `{ "continue": true }` — never modifies the prompt
+3. Returns `{ "continue": true }` — never modifies the prompt content
 
-**Privacy note**: Stripped content is never sent to the worker or stored.
+**Privacy note**: Stripped content is never sent to the worker or stored. The prompt reaching the AI is unchanged — only the stored copy is sanitized.
 
 ## Hook 3: PostToolUse
 
@@ -58,11 +58,11 @@ Claude Code Agent Loop
 - Posts observation to `POST /api/sessions/observations` (fire-and-forget)
 - Skips tools in `VIBELEARN_SKIP_TOOLS` setting
 
-**Performance**: Non-blocking. HTTP call is fire-and-forget — PostToolUse never delays Claude.
+**Performance**: Non-blocking. HTTP call is fire-and-forget — PostToolUse never delays the AI response.
 
 ## Hook 4: Stop (Analysis Trigger)
 
-**When**: Agent loop ends (user stops or Claude finishes).
+**When**: Agent loop ends (user stops or AI finishes its task).
 
 **Input**: `{ session_id, transcript_path, last_assistant_message }`
 
@@ -111,11 +111,11 @@ All hooks communicate with the worker over HTTP on `localhost:37778`. The worker
 If the worker is down:
 - **SessionStart** attempts to restart it
 - **PostToolUse** fails silently (fire-and-forget)
-- **Stop** each pipeline step fails independently and logs the error
+- **Stop** — each pipeline step fails independently and logs the error
 
 ## Implementation Reference
 
-Built hooks are at:
+Built hooks land at:
 - `plugin/scripts/session-start-hook.js`
 - `plugin/scripts/user-prompt-submit-hook.js`
 - `plugin/scripts/post-tool-use-hook.js`

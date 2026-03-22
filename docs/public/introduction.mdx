@@ -5,11 +5,11 @@ description: Learn from every coding session — automatically
 
 # VibeLearn
 
-VibeLearn is a Claude Code plugin that captures what you build during coding sessions, extracts learning concepts, and generates quiz questions. Run `vl quiz` to actually retain what you learn.
+VibeLearn is a plugin for Claude Code and Cursor IDE that captures what you build during coding sessions, extracts learning concepts, and generates quiz questions. Run `vl quiz` after a session to retain what you learned.
 
 ## How It Works
 
-Every time a Claude Code session ends, VibeLearn automatically runs a 5-step analysis pipeline:
+Every time a session ends, VibeLearn automatically runs a 5-step analysis pipeline:
 
 <Steps>
   <Step title="Stack Detection">
@@ -19,7 +19,7 @@ Every time a Claude Code session ends, VibeLearn automatically runs a 5-step ana
     AST-parses files you edited to identify code patterns — custom hooks, API routes, DB queries, auth patterns.
   </Step>
   <Step title="Concept Extraction">
-    A single LLM call produces a session narrative + a list of concepts you encountered (e.g., "React Server Actions", "SQLite WAL mode", "HMAC signing").
+    A single LLM call produces a session narrative and a list of concepts you encountered (e.g., "React Server Actions", "SQLite WAL mode", "HMAC signing").
   </Step>
   <Step title="Quiz Generation">
     A second LLM call generates targeted quiz questions per concept — `multiple_choice`, `fill_in_blank`, and `explain_code` formats.
@@ -32,14 +32,13 @@ Every time a Claude Code session ends, VibeLearn automatically runs a 5-step ana
 ## Quick Start
 
 ```bash
-# Install the plugin
+# Install the plugin (Claude Code)
 /plugin install vibelearn
 
 # Configure an AI provider (Gemini free tier recommended)
 # Add VIBELEARN_GEMINI_API_KEY to ~/.vibelearn/settings.json
 
-# Code normally in Claude Code...
-# After your session ends, quiz yourself:
+# Code normally — after your session ends, quiz yourself:
 vl quiz
 ```
 
@@ -48,9 +47,10 @@ vl quiz
 ```bash
 vl quiz              # Interactive quiz — all pending questions
 vl quiz --session    # Quiz from the last session only
-vl status            # Sessions analyzed, top concept categories, mastery
+vl status            # Sessions analyzed, top concept categories, mastery overview
 vl gaps              # Concepts not yet mastered (score < 50%)
 vl login <api-key>   # Connect to vibelearn.dev
+vl login --status    # Check current auth status
 ```
 
 ## Privacy
@@ -65,13 +65,15 @@ Content inside `<private>` tags is stripped at the hook layer before reaching th
 
 ## Architecture
 
-VibeLearn runs as a Claude Code plugin with 5 lifecycle hooks:
+VibeLearn runs as a plugin with 5 lifecycle hooks:
 
 ```
 SessionStart → UserPromptSubmit → PostToolUse → Stop → SessionEnd
 ```
 
 The **worker service** runs locally on port **37778**, handles the analysis pipeline asynchronously, and stores all data in SQLite at `~/.vibelearn/vibelearn.db`.
+
+VibeLearn does **not** inject context into your prompts. It only observes sessions from the outside and analyzes them after they end.
 
 <CardGroup cols={2}>
   <Card title="Installation" icon="download" href="/installation">

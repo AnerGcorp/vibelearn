@@ -88,7 +88,7 @@ If 0: No questions generated yet — check LLM provider and run another session.
 
 If > 0: CLI issue. Check:
 ```bash
-vl status   # Shows if `vl` CLI can connect to DB
+vl status   # Shows if `vl` CLI can connect to the database
 ```
 
 ## Sync Failures
@@ -103,18 +103,23 @@ If `status = 'failed'` with 5 attempts: sync permanently failed. Check:
 1. `vl login <api-key>` — verify API key is set
 2. Network connectivity to `api.vibelearn.dev`
 
+Verify auth status:
+```bash
+vl login --status
+```
+
 ## Port 37778 Already in Use
 
 ```bash
 lsof -i :37778
 
-# Or change the port
+# Or change the port in settings
 # ~/.vibelearn/settings.json: "VIBELEARN_WORKER_PORT": "37779"
 ```
 
 ## Gemini Rate Limit
 
-The free Gemini tier allows 1500 requests/day. VibeLearn uses 2 per session (concepts + quiz).
+The free Gemini tier allows 1500 requests/day. VibeLearn uses 2 per session (concepts + quiz), so you can run up to 750 sessions/day on the free tier.
 
 If you hit the limit:
 1. Wait until midnight Pacific (resets daily)
@@ -135,7 +140,7 @@ curl -X POST http://127.0.0.1:37778/api/admin/shutdown
 # Delete database (DESTROYS ALL LEARNING DATA)
 rm ~/.vibelearn/vibelearn.db
 
-# Reinstall
+# Reinstall (Claude Code)
 /plugin uninstall vibelearn
 /plugin install vibelearn
 ```
