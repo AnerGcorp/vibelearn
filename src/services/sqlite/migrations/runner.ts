@@ -34,6 +34,7 @@ export class MigrationRunner {
     this.addOnUpdateCascadeToForeignKeys();
     this.addObservationContentHashColumn();
     this.addSessionCustomTitleColumn();
+    this.createVibeLearnTables();
   }
 
   /**
@@ -843,6 +844,157 @@ export class MigrationRunner {
     logger.debug('DB', 'Added content_hash column to observations table with backfill and index');
 
     this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(22, new Date().toISOString());
+  }
+
+  /**
+   * Create all VibeLearn analysis tables (migration 24)
+   *
+   * Creates the vl_* tables that power the concept extraction, quiz generation,
+   * mastery tracking, upstream sync, and developer profile pipelines.
+   * All tables use CREATE TABLE IF NOT EXISTS — fully idempotent.
+   */
+  private createVibeLearnTables(): void {
+    const applied = this.db.prepare('SELECT version FROM schema_versions WHERE version = ?').get(24) as SchemaVersion | undefined;
+    if (applied) return;
+
+    logger.debug('DB', 'Creating VibeLearn analysis tables');
+
+    // Human-readable session narratives
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vibelearn_session_summaries (
+        session_id TEXT PRIMARY KEY,
+        what_was_built TEXT,
+        developer_intent TEXT,
+        architecture_decisions_json TEXT,
+        concepts_json TEXT,
+        stack_confirmed_json TEXT,
+        session_duration_minutes INTEGER,
+        files_created INTEGER DEFAULT 0,
+        files_edited INTEGER DEFAULT 0,
+        generated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        synced_at INTEGER
+      )
+    `);
+
+    // Concepts extracted per session
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vl_concepts (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        concept_name TEXT NOT NULL,
+        category TEXT,
+        difficulty TEXT CHECK(difficulty IN ('beginner','intermediate','advanced')),
+        source_file TEXT,
+        snippet TEXT,
+        why_it_matters TEXT,
+        confidence REAL DEFAULT 0.8,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `);
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_concepts_session ON vl_concepts(session_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_concepts_category ON vl_concepts(category)');
+
+    // Generated quiz questions
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vl_questions (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        concept_id TEXT NOT NULL,
+        question_type TEXT CHECK(question_type IN ('multiple_choice','fill_in_blank','explain_code')),
+        difficulty TEXT,
+        snippet TEXT,
+        question TEXT NOT NULL,
+        options_json TEXT,
+        correct TEXT NOT NULL,
+        explanation TEXT,
+        follow_up_mid TEXT,
+        tags_json TEXT,
+        next_review_at INTEGER,
+        ease_factor REAL DEFAULT 2.5,
+        interval_days INTEGER DEFAULT 0,
+        repetitions INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `);
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_questions_session ON vl_questions(session_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_questions_concept ON vl_questions(concept_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_questions_review ON vl_questions(next_review_at)');
+
+    // Developer quiz attempt records
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vl_quiz_attempts (
+        id TEXT PRIMARY KEY,
+        question_id TEXT NOT NULL,
+        answer_given TEXT,
+        is_correct INTEGER NOT NULL DEFAULT 0,
+        time_taken_ms INTEGER,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `);
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_attempts_question ON vl_quiz_attempts(question_id)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_attempts_created ON vl_quiz_attempts(created_at)');
+
+    // Per-concept mastery tracking
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vl_developer_profile (
+        concept_name TEXT PRIMARY KEY,
+        category TEXT,
+        first_seen_at INTEGER,
+        last_seen_at INTEGER,
+        encounter_count INTEGER DEFAULT 0,
+        correct_answers INTEGER DEFAULT 0,
+        incorrect_answers INTEGER DEFAULT 0,
+        current_level TEXT DEFAULT 'beginner',
+        streak_count INTEGER DEFAULT 0,
+        mastery_score REAL DEFAULT 0.0
+      )
+    `);
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_profile_category ON vl_developer_profile(category)');
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_profile_mastery ON vl_developer_profile(mastery_score)');
+
+    // Daily streak cache — server is authoritative, this is display-only
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vl_daily_streaks (
+        date TEXT PRIMARY KEY,
+        questions_answered INTEGER DEFAULT 0,
+        correct_answers INTEGER DEFAULT 0,
+        streak_continues INTEGER DEFAULT 0
+      )
+    `);
+
+    // Offline sync queue — payloads pending upload to api.vibelearn.dev
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vl_sync_queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        payload_type TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        attempts INTEGER NOT NULL DEFAULT 0,
+        last_attempted_at INTEGER,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `);
+    this.db.run('CREATE INDEX IF NOT EXISTS idx_vl_sync_pending ON vl_sync_queue(status, attempts)');
+
+    // Detected tech stack per session
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS vl_stack_profiles (
+        session_id TEXT PRIMARY KEY,
+        language_json TEXT,
+        framework TEXT,
+        orm TEXT,
+        state_management TEXT,
+        testing_json TEXT,
+        auth TEXT,
+        styling_json TEXT,
+        confidence_json TEXT,
+        detected_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `);
+
+    this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(24, new Date().toISOString());
+
+    logger.debug('DB', 'VibeLearn analysis tables created (migration 24)');
   }
 
   /**

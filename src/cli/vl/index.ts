@@ -18,6 +18,7 @@ import { Database } from 'bun:sqlite';
 import { join } from 'path';
 import { homedir } from 'os';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { updateMasteryAfterAttempt, updateDailyStreak } from '../../services/analysis/MasteryTracker.js';
 
 const DATA_DIR = process.env.VIBELEARN_DATA_DIR
   ? process.env.VIBELEARN_DATA_DIR.replace('~', homedir())
@@ -257,13 +258,29 @@ async function cmdQuiz(sessionOnly: boolean): Promise<void> {
 
     total++;
 
-    // Record attempt
+    // Record attempt and update mastery / daily streak
     try {
       const { randomUUID } = await import('crypto');
       writeDb.run(`
         INSERT INTO vl_quiz_attempts (id, question_id, answer_given, is_correct, time_taken_ms, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
       `, [randomUUID(), q.id, userAnswer, isCorrect ? 1 : 0, timeTaken, Math.floor(Date.now() / 1000)]);
+
+      // Update per-concept mastery score in vl_developer_profile
+      if (q.concept_name) {
+        // Resolve the concept's category from vl_concepts
+        const conceptRow = writeDb.query<{ category: string }, [string]>(
+          `SELECT category FROM vl_concepts WHERE concept_name = ? LIMIT 1`
+        ).get(q.concept_name);
+        updateMasteryAfterAttempt(writeDb, {
+          conceptName: q.concept_name,
+          category: conceptRow?.category ?? 'general',
+          isCorrect,
+        });
+      }
+
+      // Update today's row in vl_daily_streaks
+      updateDailyStreak(writeDb, isCorrect);
     } catch { /* silently skip attempt recording errors */ }
   }
 
