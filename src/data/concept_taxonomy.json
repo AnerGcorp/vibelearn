@@ -1,0 +1,872 @@
+{
+  "version": "1.0",
+  "total_concepts": 60,
+  "categories": [
+    "async_pattern",
+    "error_handling",
+    "design_pattern",
+    "architecture_pattern",
+    "oop_pattern",
+    "functional_pattern",
+    "concurrency",
+    "database_pattern",
+    "api_design",
+    "testing",
+    "security",
+    "state_management",
+    "type_system",
+    "react_pattern"
+  ],
+  "question_types": [
+    "multiple_choice",
+    "code_reading",
+    "spot_the_bug",
+    "fill_in_the_blank",
+    "open_ended",
+    "true_false",
+    "ordering"
+  ],
+  "difficulty_levels": ["junior", "mid", "senior"],
+  "concepts": [
+    {
+      "id": "async_await_error_propagation",
+      "concept_name": "async/await Error Propagation",
+      "category": "async_pattern",
+      "description": "How unhandled errors propagate through async call chains and why missing try/catch in async functions is a production-critical bug",
+      "languages": ["python", "javascript", "typescript", "rust", "csharp"],
+      "detection_signals": ["async_patterns", "error_handling", "async_await"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify what happens when an async function throws without try/catch",
+        "mid": "Find the missing error handling in a real async chain",
+        "senior": "Design a production error handling strategy for async pipelines"
+      }
+    },
+    {
+      "id": "promise_future_chaining",
+      "concept_name": "Promise/Future Chaining",
+      "category": "async_pattern",
+      "description": "Composing multiple async operations sequentially using .then() chains, async/await sequences, or combinators",
+      "languages": ["javascript", "typescript", "rust", "python"],
+      "detection_signals": ["async_patterns", "async_await"],
+      "question_types": { "junior": "code_reading", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Trace the execution order of chained async calls",
+        "mid": "Spot a race condition or dropped error in a chain",
+        "senior": "Refactor a .then() chain for readability and error resilience"
+      }
+    },
+    {
+      "id": "concurrent_task_orchestration",
+      "concept_name": "Concurrent Task Orchestration",
+      "category": "async_pattern",
+      "description": "Running multiple async operations in parallel with Promise.all, tokio::join!, asyncio.gather, or WaitGroup and handling partial failures",
+      "languages": ["javascript", "typescript", "python", "go", "rust"],
+      "detection_signals": ["async_patterns", "goroutine_spawn", "concurrent_spawn"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify which API runs tasks concurrently vs sequentially",
+        "mid": "Find the bug when one of N concurrent tasks fails",
+        "senior": "Design a fault-tolerant fan-out/fan-in pipeline"
+      }
+    },
+    {
+      "id": "channel_based_communication",
+      "concept_name": "Channel-Based Communication",
+      "category": "async_pattern",
+      "description": "Passing data between concurrent units via channels (Go chan, Rust mpsc, Python asyncio.Queue) instead of shared mutable state",
+      "languages": ["go", "rust"],
+      "detection_signals": ["channel_communication", "goroutine_spawn"],
+      "question_types": { "junior": "true_false", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify whether a channel is buffered or unbuffered",
+        "mid": "Trace data flow through a producer-consumer channel pipeline",
+        "senior": "Compare channel-based vs shared-memory approaches for a real workload"
+      }
+    },
+    {
+      "id": "cancellation_and_timeouts",
+      "concept_name": "Cancellation & Timeouts",
+      "category": "async_pattern",
+      "description": "Propagating cancellation signals through async call trees using context.Context, AbortController, CancellationToken, or select with timeout",
+      "languages": ["go", "javascript", "typescript", "csharp"],
+      "detection_signals": ["context_propagation", "async_patterns"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Name the mechanism used to cancel an async operation in the language",
+        "mid": "Find the missing cancellation propagation in nested async calls",
+        "senior": "Design a timeout strategy for a multi-service request pipeline"
+      }
+    },
+    {
+      "id": "try_catch_vs_result_types",
+      "concept_name": "try/catch vs Result Types",
+      "category": "error_handling",
+      "description": "Comparing exception-based error handling (try/catch/throw) with value-based error handling (Result<T,E>, Option<T>, Either) and when each is appropriate",
+      "languages": ["python", "javascript", "typescript", "rust", "go", "csharp"],
+      "detection_signals": ["error_handling", "error_propagation", "error_nil_check"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify whether the code uses exception-based or value-based errors",
+        "mid": "Find the error case that silently falls through",
+        "senior": "Argue for exception vs result-type in a given architecture"
+      }
+    },
+    {
+      "id": "error_propagation_patterns",
+      "concept_name": "Error Propagation Patterns",
+      "category": "error_handling",
+      "description": "Language-specific idioms for forwarding errors up the call stack: ? operator (Rust), if err != nil (Go), throws (Java/Swift), raise/throw (Python/JS)",
+      "languages": ["rust", "go", "python", "javascript"],
+      "detection_signals": ["error_propagation", "error_nil_check", "error_handling"],
+      "question_types": { "junior": "fill_in_the_blank", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Fill in the correct error propagation syntax for the language",
+        "mid": "Find where an error is swallowed instead of propagated",
+        "senior": "Design error boundaries for a layered architecture"
+      }
+    },
+    {
+      "id": "custom_error_hierarchies",
+      "concept_name": "Custom Error Hierarchies",
+      "category": "error_handling",
+      "description": "Defining application-specific error types (enum AppError, class HttpError extends Error) to distinguish operational vs programmer errors",
+      "languages": ["python", "javascript", "typescript", "rust", "csharp"],
+      "detection_signals": ["error_handling"],
+      "question_types": { "junior": "multiple_choice", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify which error type matches a given failure scenario",
+        "mid": "Trace which catch block handles a specific error",
+        "senior": "Design an error taxonomy for a multi-layer application"
+      }
+    },
+    {
+      "id": "graceful_degradation",
+      "concept_name": "Graceful Degradation & Fallbacks",
+      "category": "error_handling",
+      "description": "Continuing with reduced functionality when a dependency fails: circuit breakers, fallback values, retry with backoff, partial response patterns",
+      "languages": ["python", "javascript", "typescript", "go", "csharp"],
+      "detection_signals": ["error_handling", "async_patterns"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify whether a failure mode is graceful or catastrophic",
+        "mid": "Find the missing fallback in a service dependency chain",
+        "senior": "Design a resilience strategy with circuit breaker and retry policies"
+      }
+    },
+    {
+      "id": "singleton_pattern",
+      "concept_name": "Singleton Pattern",
+      "category": "design_pattern",
+      "description": "Restricting a class to a single instance with global access point — understanding the trade-offs with testability and hidden dependencies",
+      "languages": ["python", "javascript", "typescript", "ruby", "csharp"],
+      "detection_signals": ["singleton_pattern"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Name this creational pattern from a getInstance() code sample",
+        "mid": "Find the thread-safety or state-leak bug in a singleton implementation",
+        "senior": "Critique singleton usage and propose dependency injection alternative"
+      }
+    },
+    {
+      "id": "observer_event_emitter",
+      "concept_name": "Observer / Event Emitter Pattern",
+      "category": "design_pattern",
+      "description": "Decoupling publishers from subscribers using on/emit, addEventListener, or pub/sub to react to state changes without tight coupling",
+      "languages": ["javascript", "typescript", "python", "ruby", "csharp"],
+      "detection_signals": ["observer_pattern"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify the observer pattern from on/emit usage",
+        "mid": "Find the memory leak from missing unsubscribe",
+        "senior": "Compare observer vs reactive streams for event-heavy systems"
+      }
+    },
+    {
+      "id": "factory_pattern",
+      "concept_name": "Factory Pattern",
+      "category": "design_pattern",
+      "description": "Abstracting object creation so the calling code doesn't depend on concrete classes — enables swapping implementations without changing consumers",
+      "languages": ["python", "javascript", "typescript", "csharp", "ruby"],
+      "detection_signals": ["oop_patterns", "layered_architecture"],
+      "question_types": { "junior": "multiple_choice", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Recognize a factory method from code and name the pattern",
+        "mid": "Trace which concrete type a factory produces given specific input",
+        "senior": "Design a factory that supports runtime registration of new types"
+      }
+    },
+    {
+      "id": "strategy_pattern",
+      "concept_name": "Strategy Pattern",
+      "category": "design_pattern",
+      "description": "Encapsulating interchangeable algorithms behind a common interface so the algorithm can be swapped at runtime without modifying the client",
+      "languages": ["python", "javascript", "typescript", "csharp", "go"],
+      "detection_signals": ["oop_patterns", "interface_definition", "interface_definitions"],
+      "question_types": { "junior": "multiple_choice", "mid": "fill_in_the_blank", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify strategy pattern from interchangeable function/interface usage",
+        "mid": "Fill in the interface/function signature that makes strategies swappable",
+        "senior": "Refactor a switch-case into strategy pattern and discuss trade-offs"
+      }
+    },
+    {
+      "id": "builder_pattern",
+      "concept_name": "Builder Pattern",
+      "category": "design_pattern",
+      "description": "Constructing complex objects step-by-step with a fluent API instead of telescoping constructors or large parameter lists",
+      "languages": ["rust", "csharp", "python", "javascript"],
+      "detection_signals": ["oop_patterns", "derive_macros"],
+      "question_types": { "junior": "code_reading", "mid": "fill_in_the_blank", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Trace a builder chain to determine the final object configuration",
+        "mid": "Fill in the missing method that makes the builder chain compile",
+        "senior": "Compare builder vs constructor overloads vs named parameters"
+      }
+    },
+    {
+      "id": "middleware_chain",
+      "concept_name": "Middleware / Chain of Responsibility",
+      "category": "design_pattern",
+      "description": "Processing requests through a pipeline of handlers where each handler decides whether to pass, modify, or short-circuit the request",
+      "languages": ["javascript", "typescript", "python", "go", "ruby", "csharp"],
+      "detection_signals": ["layered_architecture", "middleware_pipeline"],
+      "question_types": { "junior": "ordering", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Arrange middleware handlers in the correct execution order",
+        "mid": "Find the middleware that fails to call next() and blocks the pipeline",
+        "senior": "Design a middleware architecture with error handling and logging"
+      }
+    },
+    {
+      "id": "dependency_injection",
+      "concept_name": "Dependency Injection",
+      "category": "architecture_pattern",
+      "description": "Providing dependencies to a component from outside rather than having it create them internally — enables testing, loose coupling, and swappable implementations",
+      "languages": ["csharp", "python", "javascript", "typescript", "go", "ruby"],
+      "detection_signals": ["dependency_injection", "layered_architecture", "interface_definitions"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify constructor injection from a class that accepts interfaces",
+        "mid": "Find the hard-coded dependency that breaks testability",
+        "senior": "Design a DI container configuration for a multi-module application"
+      }
+    },
+    {
+      "id": "layered_architecture",
+      "concept_name": "Layered Architecture",
+      "category": "architecture_pattern",
+      "description": "Separating concerns into Controller → Service → Repository layers where each layer only calls the one below it",
+      "languages": ["javascript", "typescript", "python", "csharp", "go", "ruby"],
+      "detection_signals": ["layered_architecture", "interface_definitions", "interface_definition"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify which layer a given class belongs to based on its responsibilities",
+        "mid": "Find the layer violation where a controller directly queries the database",
+        "senior": "Design the layer boundaries and inter-layer contracts for a new feature"
+      }
+    },
+    {
+      "id": "middleware_pipeline",
+      "concept_name": "Middleware Pipeline",
+      "category": "architecture_pattern",
+      "description": "Framework-level request processing pipeline (Express middleware, ASP.NET middleware, Rack) where order matters and each step can short-circuit",
+      "languages": ["javascript", "typescript", "python", "go", "ruby", "csharp"],
+      "detection_signals": ["layered_architecture", "attribute_decoration"],
+      "question_types": { "junior": "ordering", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Arrange auth → logging → rate-limit → handler in correct order",
+        "mid": "Find the middleware ordering bug that causes auth bypass",
+        "senior": "Design a middleware pipeline with proper error propagation and metrics"
+      }
+    },
+    {
+      "id": "event_driven_architecture",
+      "concept_name": "Event-Driven Architecture",
+      "category": "architecture_pattern",
+      "description": "Decoupling services through asynchronous events instead of synchronous API calls — event sourcing, message queues, eventual consistency",
+      "languages": ["javascript", "typescript", "python", "go", "csharp"],
+      "detection_signals": ["observer_pattern", "channel_communication"],
+      "question_types": { "junior": "true_false", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify whether a system uses event-driven or request-response communication",
+        "mid": "Trace the event flow and determine the final state after N events",
+        "senior": "Design an event sourcing system with replay and compensating events"
+      }
+    },
+    {
+      "id": "microservice_communication",
+      "concept_name": "Microservice Communication",
+      "category": "architecture_pattern",
+      "description": "Patterns for inter-service communication: REST, gRPC, message queues, service mesh — and the distributed systems problems each introduces",
+      "languages": ["go", "csharp", "javascript", "python"],
+      "detection_signals": ["layered_architecture", "async_patterns"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Name the communication pattern (sync REST vs async message queue)",
+        "mid": "Find the missing retry/timeout that causes cascading failure",
+        "senior": "Design a communication strategy for a specific microservice topology"
+      }
+    },
+    {
+      "id": "interface_segregation",
+      "concept_name": "Interface Segregation",
+      "category": "oop_pattern",
+      "description": "Keeping interfaces small and focused so implementors aren't forced to depend on methods they don't use — the I in SOLID",
+      "languages": ["csharp", "go", "typescript", "python", "rust"],
+      "detection_signals": ["interface_definitions", "interface_definition", "trait_impl"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify whether an interface follows or violates ISP",
+        "mid": "Find the fat interface that forces empty method implementations",
+        "senior": "Refactor a bloated interface into role-specific interfaces"
+      }
+    },
+    {
+      "id": "composition_over_inheritance",
+      "concept_name": "Composition over Inheritance",
+      "category": "oop_pattern",
+      "description": "Preferring delegation and contained objects over class hierarchies to avoid the fragile base class problem and enable flexible behavior combinations",
+      "languages": ["python", "javascript", "typescript", "ruby", "csharp", "go"],
+      "detection_signals": ["class_inheritance", "oop_patterns"],
+      "question_types": { "junior": "true_false", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify whether code uses inheritance or composition",
+        "mid": "Trace method resolution in a multi-level inheritance chain",
+        "senior": "Refactor a deep inheritance hierarchy into a composition-based design"
+      }
+    },
+    {
+      "id": "trait_protocol_implementation",
+      "concept_name": "Trait / Protocol Implementation",
+      "category": "oop_pattern",
+      "description": "Implementing behavior contracts (Rust traits, Go interfaces, C# interfaces, Python protocols) for polymorphism without inheritance",
+      "languages": ["rust", "go", "csharp", "python"],
+      "detection_signals": ["trait_impl", "interface_definition", "interface_definitions"],
+      "question_types": { "junior": "fill_in_the_blank", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Fill in the trait/interface method signature to satisfy the contract",
+        "mid": "Find the missing trait implementation that causes a compile error",
+        "senior": "Design a trait hierarchy for a plugin system"
+      }
+    },
+    {
+      "id": "mixin_module_inclusion",
+      "concept_name": "Mixin / Module Inclusion",
+      "category": "oop_pattern",
+      "description": "Sharing behavior across unrelated classes using include/extend (Ruby), mixins (Python), or traits (PHP/Scala) without classical inheritance",
+      "languages": ["ruby", "python"],
+      "detection_signals": ["module_mixin", "oop_patterns"],
+      "question_types": { "junior": "multiple_choice", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify that include/extend adds methods to a class",
+        "mid": "Trace method resolution when multiple modules define the same method",
+        "senior": "Design a mixin architecture that avoids method name collisions"
+      }
+    },
+    {
+      "id": "polymorphism_dispatch",
+      "concept_name": "Polymorphism & Method Dispatch",
+      "category": "oop_pattern",
+      "description": "Dynamic dispatch (virtual methods, trait objects) vs static dispatch (generics, monomorphization) and their performance/flexibility trade-offs",
+      "languages": ["csharp", "rust", "python", "go", "ruby"],
+      "detection_signals": ["oop_patterns", "trait_impl", "class_inheritance"],
+      "question_types": { "junior": "code_reading", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Predict which method implementation runs given a polymorphic call",
+        "mid": "Find the incorrect downcast or missing virtual keyword",
+        "senior": "Compare dyn Trait vs generic <T: Trait> for a real API"
+      }
+    },
+    {
+      "id": "higher_order_functions",
+      "concept_name": "Higher-Order Functions",
+      "category": "functional_pattern",
+      "description": "Functions that take functions as arguments or return functions — map/filter/reduce, decorators, middleware factories",
+      "languages": ["javascript", "typescript", "python", "rust", "ruby"],
+      "detection_signals": ["functional_programming", "comprehensions", "block_usage"],
+      "question_types": { "junior": "code_reading", "mid": "fill_in_the_blank", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Trace map/filter/reduce to determine the output",
+        "mid": "Fill in the predicate function that produces the expected result",
+        "senior": "Compose multiple HOFs into a data processing pipeline and discuss readability"
+      }
+    },
+    {
+      "id": "closures_captured_state",
+      "concept_name": "Closures & Captured State",
+      "category": "functional_pattern",
+      "description": "Functions that capture variables from their enclosing scope — understanding what is captured (value vs reference) and lifetime implications",
+      "languages": ["javascript", "typescript", "python", "rust", "go", "ruby"],
+      "detection_signals": ["functional_programming", "react_hooks"],
+      "question_types": { "junior": "code_reading", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Trace a closure's output given captured variable values",
+        "mid": "Find the stale closure bug in a loop or React effect",
+        "senior": "Analyze ownership/move semantics in Rust closures vs JS closures"
+      }
+    },
+    {
+      "id": "immutability_pure_functions",
+      "concept_name": "Immutability & Pure Functions",
+      "category": "functional_pattern",
+      "description": "Writing functions without side effects and using immutable data structures to make code predictable, testable, and safe for concurrency",
+      "languages": ["javascript", "typescript", "python", "rust"],
+      "detection_signals": ["functional_programming"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify whether a function is pure or has side effects",
+        "mid": "Find the hidden mutation that causes a bug in a supposedly pure function",
+        "senior": "Refactor a stateful module into pure functions + immutable state"
+      }
+    },
+    {
+      "id": "pattern_matching",
+      "concept_name": "Pattern Matching",
+      "category": "functional_pattern",
+      "description": "Destructuring and branching on data shape (Rust match, Python match/case, C# switch expressions) with exhaustiveness checking",
+      "languages": ["rust", "python", "csharp"],
+      "detection_signals": ["error_propagation"],
+      "question_types": { "junior": "code_reading", "mid": "fill_in_the_blank", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Trace which match arm executes for a given input",
+        "mid": "Fill in the missing pattern that handles an unmatched case",
+        "senior": "Design exhaustive pattern matching for a domain-specific enum"
+      }
+    },
+    {
+      "id": "goroutine_green_thread",
+      "concept_name": "Goroutine / Green Thread Spawning",
+      "category": "concurrency",
+      "description": "Launching lightweight concurrent units of execution (goroutines, tokio tasks, green threads) and understanding their lifecycle and resource implications",
+      "languages": ["go", "rust"],
+      "detection_signals": ["goroutine_spawn", "concurrent_spawn"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify that goroutines/tasks are not OS threads",
+        "mid": "Find the goroutine leak from a missing done channel or context",
+        "senior": "Design a bounded concurrency system with backpressure"
+      }
+    },
+    {
+      "id": "mutex_lock_synchronization",
+      "concept_name": "Mutex / Lock-Based Synchronization",
+      "category": "concurrency",
+      "description": "Protecting shared mutable state with mutexes, read-write locks, or synchronized blocks — and understanding the performance vs safety trade-off",
+      "languages": ["go", "rust", "csharp", "python"],
+      "detection_signals": ["goroutine_spawn", "concurrent_spawn"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify why concurrent access to a shared variable needs a lock",
+        "mid": "Find the race condition from a missing or incorrectly scoped lock",
+        "senior": "Replace lock-based synchronization with lock-free data structures"
+      }
+    },
+    {
+      "id": "actor_model",
+      "concept_name": "Actor Model",
+      "category": "concurrency",
+      "description": "Isolating state within actors that communicate only via message passing — Erlang/Elixir processes, Akka actors, or actor-like patterns in Go/Rust",
+      "languages": ["go", "rust"],
+      "detection_signals": ["channel_communication", "concurrent_spawn"],
+      "question_types": { "junior": "multiple_choice", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify the actor model from message-passing code",
+        "mid": "Trace message flow between actors to determine final state",
+        "senior": "Design an actor-based system with supervision and restart policies"
+      }
+    },
+    {
+      "id": "worker_pool_pattern",
+      "concept_name": "Worker Pool Pattern",
+      "category": "concurrency",
+      "description": "Bounding parallelism with a fixed pool of workers consuming from a shared job queue — preventing resource exhaustion under load",
+      "languages": ["go", "rust", "python", "csharp"],
+      "detection_signals": ["goroutine_spawn", "channel_communication", "concurrent_spawn"],
+      "question_types": { "junior": "ordering", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Arrange the steps to set up a worker pool correctly",
+        "mid": "Find the missing synchronization that causes workers to exit early",
+        "senior": "Design a dynamic worker pool with autoscaling and graceful shutdown"
+      }
+    },
+    {
+      "id": "deadlock_prevention",
+      "concept_name": "Deadlock Prevention",
+      "category": "concurrency",
+      "description": "Recognizing and preventing circular wait conditions: lock ordering, timeout-based acquisition, try-lock patterns, and deadlock detection strategies",
+      "languages": ["go", "rust", "csharp", "python"],
+      "detection_signals": ["goroutine_spawn", "concurrent_spawn"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify the four conditions required for deadlock",
+        "mid": "Find the lock ordering violation that causes a deadlock",
+        "senior": "Design a lock-free alternative or prove deadlock freedom"
+      }
+    },
+    {
+      "id": "orm_query_optimization",
+      "concept_name": "ORM Query Optimization",
+      "category": "database_pattern",
+      "description": "Avoiding the N+1 problem, choosing eager vs lazy loading, understanding when to drop to raw SQL, and reading generated queries",
+      "languages": ["python", "javascript", "typescript", "ruby", "csharp", "rust"],
+      "detection_signals": ["rails_dsl"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify what the N+1 problem is from a code sample",
+        "mid": "Find the N+1 query hidden in a loop over ORM relations",
+        "senior": "Refactor a view with 5 queries into 1 using eager loading + projection"
+      }
+    },
+    {
+      "id": "database_migration_strategy",
+      "concept_name": "Database Migration Strategy",
+      "category": "database_pattern",
+      "description": "Schema evolution with reversible migrations, zero-downtime deployment, and handling data transformations alongside schema changes",
+      "languages": ["python", "ruby", "csharp", "javascript"],
+      "detection_signals": ["rails_dsl"],
+      "question_types": { "junior": "ordering", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Arrange migration steps in correct order (add column → backfill → remove old)",
+        "mid": "Find the migration that breaks existing reads during deployment",
+        "senior": "Design a zero-downtime migration for a column rename with active traffic"
+      }
+    },
+    {
+      "id": "connection_pool_management",
+      "concept_name": "Connection Pool Management",
+      "category": "database_pattern",
+      "description": "Sizing connection pools, handling idle timeout, connection leaks, and understanding how pool exhaustion causes cascading failures",
+      "languages": ["go", "rust", "python", "csharp", "javascript"],
+      "detection_signals": ["async_patterns", "defer_cleanup"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify why a connection pool is used instead of opening new connections",
+        "mid": "Find the connection leak from missing close/defer/using",
+        "senior": "Size a connection pool for a given traffic pattern and analyze failure modes"
+      }
+    },
+    {
+      "id": "transaction_boundaries",
+      "concept_name": "Transaction Boundaries",
+      "category": "database_pattern",
+      "description": "Defining where transactions start and end, understanding isolation levels, and ensuring all-or-nothing semantics for multi-step operations",
+      "languages": ["python", "csharp", "go", "rust", "ruby"],
+      "detection_signals": ["error_handling", "defer_cleanup"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify what ACID means in a transaction context",
+        "mid": "Find the missing rollback that leaves data in an inconsistent state",
+        "senior": "Design transaction boundaries for a saga across multiple services"
+      }
+    },
+    {
+      "id": "repository_pattern",
+      "concept_name": "Repository Pattern",
+      "category": "database_pattern",
+      "description": "Abstracting data access behind an interface so business logic doesn't depend on the specific database technology or query language",
+      "languages": ["csharp", "python", "go", "typescript", "ruby"],
+      "detection_signals": ["layered_architecture", "interface_definitions", "interface_definition"],
+      "question_types": { "junior": "multiple_choice", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify the repository pattern from a class with CRUD methods",
+        "mid": "Trace which repository implementation is used via dependency injection",
+        "senior": "Design a generic repository with specification pattern for complex queries"
+      }
+    },
+    {
+      "id": "restful_resource_design",
+      "concept_name": "RESTful Resource Design",
+      "category": "api_design",
+      "description": "Designing URL hierarchies, choosing HTTP methods, returning correct status codes, and handling pagination/filtering for REST APIs",
+      "languages": ["javascript", "typescript", "python", "go", "ruby", "csharp"],
+      "detection_signals": ["layered_architecture", "attribute_decoration"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Match HTTP methods to CRUD operations",
+        "mid": "Find the REST convention violation (wrong status code, wrong method)",
+        "senior": "Design a resource hierarchy for a complex domain with nested resources"
+      }
+    },
+    {
+      "id": "auth_middleware_design",
+      "concept_name": "Auth Middleware Design",
+      "category": "api_design",
+      "description": "Implementing authentication/authorization as middleware that validates tokens, extracts user context, and enforces role-based access",
+      "languages": ["javascript", "typescript", "python", "go", "csharp"],
+      "detection_signals": ["layered_architecture", "attribute_decoration"],
+      "question_types": { "junior": "ordering", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Arrange auth middleware steps: verify token → extract user → check role → proceed",
+        "mid": "Find the auth bypass from incorrect middleware ordering or missing check",
+        "senior": "Design an auth system supporting multiple providers and fine-grained permissions"
+      }
+    },
+    {
+      "id": "rate_limiting_throttling",
+      "concept_name": "Rate Limiting & Throttling",
+      "category": "api_design",
+      "description": "Protecting APIs from abuse using token bucket, sliding window, or leaky bucket algorithms — and returning appropriate 429 responses with Retry-After",
+      "languages": ["javascript", "typescript", "python", "go", "csharp"],
+      "detection_signals": ["layered_architecture"],
+      "question_types": { "junior": "multiple_choice", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify which rate limiting algorithm is being used",
+        "mid": "Trace a token bucket to determine if a request is allowed or throttled",
+        "senior": "Design a distributed rate limiter for a multi-instance API"
+      }
+    },
+    {
+      "id": "api_versioning_strategy",
+      "concept_name": "API Versioning Strategy",
+      "category": "api_design",
+      "description": "Managing breaking changes in APIs using URL prefix (/v1/), header-based, or content negotiation versioning — and deprecation policies",
+      "languages": ["javascript", "typescript", "python", "go", "csharp"],
+      "detection_signals": ["layered_architecture"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify the versioning strategy from URL patterns or headers",
+        "mid": "Find the breaking change that wasn't versioned",
+        "senior": "Design a versioning and deprecation strategy for a public API"
+      }
+    },
+    {
+      "id": "unit_test_isolation",
+      "concept_name": "Unit Test Isolation",
+      "category": "testing",
+      "description": "Testing units in isolation using mocks, stubs, and fakes to replace real dependencies — and understanding when mocking harms more than helps",
+      "languages": ["python", "javascript", "typescript", "csharp", "ruby", "go"],
+      "detection_signals": ["rspec_patterns"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify why a test uses a mock instead of the real database",
+        "mid": "Find the test that passes with mocks but fails in integration",
+        "senior": "Design a testing strategy balancing mocks vs real dependencies"
+      }
+    },
+    {
+      "id": "integration_test_design",
+      "concept_name": "Integration Test Design",
+      "category": "testing",
+      "description": "Testing real interactions between components with actual databases, APIs, and message queues — using test containers, fixtures, and seed data",
+      "languages": ["python", "javascript", "typescript", "csharp", "ruby", "go"],
+      "detection_signals": ["rspec_patterns"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Distinguish integration tests from unit tests by their characteristics",
+        "mid": "Find the test pollution where one test's data affects another",
+        "senior": "Design an integration test suite with proper isolation and CI performance"
+      }
+    },
+    {
+      "id": "test_driven_development",
+      "concept_name": "Test-Driven Development",
+      "category": "testing",
+      "description": "Writing tests before implementation code in the red-green-refactor cycle — and understanding when TDD adds value vs overhead",
+      "languages": ["python", "javascript", "typescript", "csharp", "ruby", "go"],
+      "detection_signals": ["rspec_patterns"],
+      "question_types": { "junior": "ordering", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Arrange TDD steps in correct order: write failing test → implement → refactor",
+        "mid": "Find the test that was written after the code (tests implementation, not behavior)",
+        "senior": "Argue for or against TDD for a greenfield vs legacy codebase"
+      }
+    },
+    {
+      "id": "property_based_testing",
+      "concept_name": "Property-Based Testing",
+      "category": "testing",
+      "description": "Testing invariants across randomly generated inputs instead of hand-picked examples — using Hypothesis, fast-check, or proptest",
+      "languages": ["python", "javascript", "rust"],
+      "detection_signals": [],
+      "question_types": { "junior": "multiple_choice", "mid": "fill_in_the_blank", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify what makes property-based testing different from example-based testing",
+        "mid": "Write the property invariant for a given function",
+        "senior": "Design property tests for a stateful system with model-based testing"
+      }
+    },
+    {
+      "id": "test_fixture_management",
+      "concept_name": "Test Fixture Management",
+      "category": "testing",
+      "description": "Setting up and tearing down test state using fixtures, factories, builders, and shared contexts — avoiding test coupling and pollution",
+      "languages": ["python", "ruby", "javascript", "csharp"],
+      "detection_signals": ["rspec_patterns"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify the purpose of setUp/tearDown or before/after hooks",
+        "mid": "Find the shared mutable fixture that makes test order matter",
+        "senior": "Design a fixture strategy for a test suite with 500+ tests"
+      }
+    },
+    {
+      "id": "input_validation_sanitization",
+      "concept_name": "Input Validation & Sanitization",
+      "category": "security",
+      "description": "Validating and sanitizing all external input (user forms, API payloads, query params) to prevent injection attacks, XSS, and data corruption",
+      "languages": ["javascript", "typescript", "python", "go", "csharp", "ruby"],
+      "detection_signals": ["error_handling"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify why raw user input should never be used in a SQL query",
+        "mid": "Find the XSS or injection vulnerability in a request handler",
+        "senior": "Design a validation layer using schema validation for a multi-endpoint API"
+      }
+    },
+    {
+      "id": "token_based_authentication",
+      "concept_name": "Token-Based Authentication",
+      "category": "security",
+      "description": "JWT lifecycle (issue → validate → refresh → revoke), secure token storage, and understanding the trade-offs between JWTs and session cookies",
+      "languages": ["javascript", "typescript", "python", "go", "csharp"],
+      "detection_signals": ["layered_architecture"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify the components of a JWT (header.payload.signature)",
+        "mid": "Find the JWT validation bug that allows expired or tampered tokens",
+        "senior": "Design a token refresh strategy with revocation for a mobile app"
+      }
+    },
+    {
+      "id": "cors_csrf_protection",
+      "concept_name": "CORS & CSRF Protection",
+      "category": "security",
+      "description": "Understanding same-origin policy, configuring CORS headers correctly, and implementing CSRF tokens to prevent cross-site attacks",
+      "languages": ["javascript", "typescript", "python", "csharp"],
+      "detection_signals": ["layered_architecture"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify what CORS prevents and when it applies",
+        "mid": "Find the overly permissive CORS configuration (Access-Control-Allow-Origin: *)",
+        "senior": "Design a CORS + CSRF strategy for a multi-domain SPA architecture"
+      }
+    },
+    {
+      "id": "secrets_management",
+      "concept_name": "Secrets Management",
+      "category": "security",
+      "description": "Keeping API keys, database credentials, and encryption keys out of source code using environment variables, vaults, and rotation policies",
+      "languages": ["javascript", "typescript", "python", "go", "csharp", "ruby"],
+      "detection_signals": [],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify why hardcoded secrets in source code are dangerous",
+        "mid": "Find the secret that leaked through logging, error messages, or git history",
+        "senior": "Design a secrets management strategy with rotation and least-privilege access"
+      }
+    },
+    {
+      "id": "global_state_store",
+      "concept_name": "Global State Store",
+      "category": "state_management",
+      "description": "Centralizing application state in a single store (Zustand, Redux, Vuex) with predictable mutations and derived state via selectors",
+      "languages": ["javascript", "typescript"],
+      "detection_signals": ["zustand_store", "redux_pattern"],
+      "question_types": { "junior": "multiple_choice", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify the state management library from store setup code",
+        "mid": "Find the unnecessary re-render caused by non-memoized selector",
+        "senior": "Design a state architecture for a complex multi-feature application"
+      }
+    },
+    {
+      "id": "reactive_state_subscriptions",
+      "concept_name": "Reactive State & Subscriptions",
+      "category": "state_management",
+      "description": "Subscribing to state changes and reacting automatically — observables, signals, computed properties, and subscription lifecycle management",
+      "languages": ["javascript", "typescript"],
+      "detection_signals": ["observer_pattern", "react_hooks"],
+      "question_types": { "junior": "fill_in_the_blank", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Fill in the subscribe/unsubscribe calls for a state change listener",
+        "mid": "Find the subscription memory leak from missing cleanup",
+        "senior": "Compare signals vs observables vs hooks for a real-time dashboard"
+      }
+    },
+    {
+      "id": "server_vs_client_state",
+      "concept_name": "Server State vs Client State",
+      "category": "state_management",
+      "description": "Distinguishing server-owned data (cached, stale, refetchable) from client-owned state (UI, form, local preferences) and using appropriate tools for each",
+      "languages": ["javascript", "typescript"],
+      "detection_signals": ["react_hooks", "zustand_store"],
+      "question_types": { "junior": "true_false", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify whether a piece of data is server state or client state",
+        "mid": "Find the bug from treating server data as client state (stale cache, no refetch)",
+        "senior": "Design a data fetching strategy with optimistic updates and cache invalidation"
+      }
+    },
+    {
+      "id": "generic_type_parameters",
+      "concept_name": "Generic Type Parameters",
+      "category": "type_system",
+      "description": "Writing type-safe reusable code with generics/templates — type constraints, variance, and understanding when generics add value vs complexity",
+      "languages": ["typescript", "rust", "csharp", "go"],
+      "detection_signals": ["typescript_types", "lifetime_annotations"],
+      "question_types": { "junior": "code_reading", "mid": "fill_in_the_blank", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Trace a generic function's type parameter for a specific invocation",
+        "mid": "Fill in the generic constraint that makes the function compile",
+        "senior": "Design a generic repository/collection with proper variance annotations"
+      }
+    },
+    {
+      "id": "nullable_optional_handling",
+      "concept_name": "Nullable / Optional Handling",
+      "category": "type_system",
+      "description": "Safely working with values that might not exist using Option<T>, nullable references, optional chaining (?.), and null coalescing (??)",
+      "languages": ["rust", "csharp", "typescript", "python"],
+      "detection_signals": ["typescript_types", "error_propagation"],
+      "question_types": { "junior": "code_reading", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Trace optional chaining to determine if a value is null or defined",
+        "mid": "Find the null reference exception from missing null check",
+        "senior": "Compare Option/Result monads vs nullable types for API design"
+      }
+    },
+    {
+      "id": "type_guards_narrowing",
+      "concept_name": "Type Guards & Narrowing",
+      "category": "type_system",
+      "description": "Refining a broad type to a specific one using typeof, instanceof, discriminated unions, or custom type predicates for safe type-specific operations",
+      "languages": ["typescript", "csharp", "python"],
+      "detection_signals": ["typescript_types"],
+      "question_types": { "junior": "code_reading", "mid": "fill_in_the_blank", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Trace a type guard to determine the narrowed type in each branch",
+        "mid": "Fill in the type predicate that correctly narrows a union type",
+        "senior": "Design a discriminated union with exhaustive handling for a domain model"
+      }
+    },
+    {
+      "id": "useeffect_lifecycle_cleanup",
+      "concept_name": "useEffect Lifecycle & Cleanup",
+      "category": "react_pattern",
+      "description": "Managing side effects in React components: dependency arrays, cleanup functions, avoiding infinite loops, and handling async effects correctly",
+      "languages": ["javascript", "typescript"],
+      "detection_signals": ["react_hooks"],
+      "question_types": { "junior": "fill_in_the_blank", "mid": "spot_the_bug", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Fill in the cleanup function that prevents a memory leak",
+        "mid": "Find the missing dependency or infinite loop in a useEffect",
+        "senior": "Critique useEffect vs custom hooks vs server components for data fetching"
+      }
+    },
+    {
+      "id": "component_composition",
+      "concept_name": "Component Composition & Render Props",
+      "category": "react_pattern",
+      "description": "Building flexible UI components using composition patterns: children, render props, compound components, and the slot pattern — vs prop drilling",
+      "languages": ["javascript", "typescript"],
+      "detection_signals": ["react_hooks"],
+      "question_types": { "junior": "multiple_choice", "mid": "code_reading", "senior": "open_ended" },
+      "difficulty_notes": {
+        "junior": "Identify the composition pattern used in a component tree",
+        "mid": "Trace data flow through render props or context to find the rendered output",
+        "senior": "Refactor a prop-drilling component tree into a compound component API"
+      }
+    }
+  ]
+}

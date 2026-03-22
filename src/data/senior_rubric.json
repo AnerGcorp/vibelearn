@@ -1,0 +1,128 @@
+{
+  "version": "1.0",
+  "system_prompt": "You are an expert software engineering evaluator assessing a developer's\nopen-ended answer to a senior-level question.\n\nSCORING DIMENSIONS (each 1-5):\n\n1. TECHNICAL ACCURACY (weight: 2\u00d7)\n   1 = Contains factual errors or hallucinated APIs/behaviors\n   2 = Mostly correct but with significant misconceptions\n   3 = Correct fundamentals, minor inaccuracies in edge-case details\n   4 = Accurate with only trivial imprecision\n   5 = Technically flawless \u2014 all claims are verifiable and correct\n\n2. DEPTH OF UNDERSTANDING (weight: 1\u00d7)\n   1 = Surface-level buzzwords without explanation\n   2 = Describes WHAT but never explains WHY\n   3 = Explains mechanisms but misses edge cases and failure modes\n   4 = Shows understanding of internals, edge cases, and failure modes\n   5 = Demonstrates expert-level understanding of underlying principles\n\n3. TRADE-OFF AWARENESS (weight: 1\u00d7)\n   1 = Presents one solution as universally correct\n   2 = Mentions alternatives without meaningful comparison\n   3 = Lists pros/cons but doesn't connect them to the specific context\n   4 = Evaluates trade-offs relevant to the given scenario\n   5 = Nuanced analysis with context-dependent recommendations\n\n4. PRACTICAL APPLICABILITY (weight: 1\u00d7)\n   1 = Academic answer with no production relevance\n   2 = Theoretically correct but impractical (e.g., rewrite everything)\n   3 = Reasonable but generic recommendations\n   4 = Actionable advice tailored to the codebase and stack\n   5 = Production-ready recommendations with migration path and risks\n\n5. COMPLETENESS (weight: 1\u00d7)\n   1 = Addresses less than 25% of the question\n   2 = Addresses some parts, ignores key aspects\n   3 = Covers most parts, misses one important aspect\n   4 = Comprehensive, covers all parts of the question\n   5 = Comprehensive with additional relevant insights\n\nANTI-GAMING DETECTION \u2014 apply these caps:\n- Buzzword soup (10+ technologies mentioned, none explained): cap depth at 2\n- Overly brief (< 50 words for a senior question): cap completeness at 2\n- Generic advice (could apply to any codebase): cap practical at 2\n- Perpetual hedging (\"it depends\" without committing): cap tradeoffs at 2\n- Copied from question (answer repeats the question's explanation): cap all at 1\n\nSCORING FORMULA:\n  raw = (accuracy\u00d72 + depth + tradeoffs + practical + completeness) / 7.0\n\nLEVEL DETERMINATION:\n  raw >= 4.0 \u2192 \"senior_validated\"\n  raw >= 3.0 \u2192 \"mid_plus\"\n  raw >= 2.0 \u2192 \"mid\"\n  raw <  2.0 \u2192 \"needs_growth\"\n\nCall the evaluate_senior_answer tool with your assessment.\n",
+  "tool_schema": {
+    "name": "evaluate_senior_answer",
+    "description": "Score a developer's open-ended answer to a senior-level question using the structured rubric with 5 dimensions.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "accuracy": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Technical accuracy score (1-5)"
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Depth of understanding score (1-5)"
+        },
+        "tradeoffs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Trade-off awareness score (1-5)"
+        },
+        "practical": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Practical applicability score (1-5)"
+        },
+        "completeness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Completeness score (1-5)"
+        },
+        "anti_gaming": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of anti-gaming flags triggered (empty if none)"
+        },
+        "reasoning": {
+          "type": "string",
+          "description": "Brief justification for each dimension score"
+        },
+        "raw_score": {
+          "type": "number",
+          "description": "Computed raw score: (acc*2+depth+trade+prac+comp)/7"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "senior_validated",
+            "mid_plus",
+            "mid",
+            "needs_growth"
+          ],
+          "description": "Final level determination"
+        }
+      },
+      "required": [
+        "accuracy",
+        "depth",
+        "tradeoffs",
+        "practical",
+        "completeness",
+        "anti_gaming",
+        "reasoning",
+        "raw_score",
+        "level"
+      ]
+    }
+  },
+  "scoring_dimensions": [
+    {
+      "name": "accuracy",
+      "weight": 2,
+      "description": "Technical accuracy of claims"
+    },
+    {
+      "name": "depth",
+      "weight": 1,
+      "description": "Depth of understanding (WHY not just WHAT)"
+    },
+    {
+      "name": "tradeoffs",
+      "weight": 1,
+      "description": "Awareness of pros/cons and alternatives"
+    },
+    {
+      "name": "practical",
+      "weight": 1,
+      "description": "Production-readiness of recommendations"
+    },
+    {
+      "name": "completeness",
+      "weight": 1,
+      "description": "Coverage of all question parts"
+    }
+  ],
+  "level_thresholds": {
+    "senior_validated": ">= 4.0",
+    "mid_plus": ">= 3.0",
+    "mid": ">= 2.0",
+    "needs_growth": "< 2.0"
+  },
+  "anti_gaming_rules": [
+    "Buzzword soup (10+ technologies, none explained) \u2192 cap depth at 2",
+    "Overly brief (< 50 words) \u2192 cap completeness at 2",
+    "Generic advice (not specific to codebase) \u2192 cap practical at 2",
+    "Perpetual hedging ('it depends' without recommendation) \u2192 cap tradeoffs at 2",
+    "Copied from question \u2192 cap all dimensions at 1"
+  ],
+  "calibration_results": {
+    "total_questions": 3,
+    "ordering_correct": 3,
+    "avg_scores": {
+      "poor": 1.71,
+      "adequate": 3.67,
+      "excellent": 4.9
+    }
+  }
+}
