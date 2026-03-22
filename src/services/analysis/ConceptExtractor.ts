@@ -46,7 +46,46 @@ interface ExtractionResult {
 }
 
 /**
+ * Group CodePattern[] into a structured signal summary for the LLM prompt.
+ * Format: { tag, files, count } — mirrors the belearn POC signal format.
+ */
+function groupSignals(patterns: CodePattern[]): Array<{ tag: string; files: string[]; count: number }> {
+  const byType = new Map<string, { files: Set<string>; count: number }>();
+  for (const p of patterns) {
+    const entry = byType.get(p.pattern_type) ?? { files: new Set(), count: 0 };
+    entry.files.add(p.file_path);
+    entry.count++;
+    byType.set(p.pattern_type, entry);
+  }
+  return [...byType.entries()].map(([tag, { files, count }]) => ({
+    tag,
+    files: [...files],
+    count,
+  }));
+}
+
+// ─── System prompt (calibrated from belearn POC notebook 03) ─────────────────
+
+const EXTRACTION_SYSTEM = `You are an expert software engineering educator analysing a vibe-coded development session.
+
+Your role is to identify 3–8 concepts the developer encountered — especially ones they
+may have USED without fully understanding. These become the foundation for quiz questions
+that close the gap between "it ran" and "I understand why it ran."
+
+Evaluation criteria for a GOOD concept extraction:
+1. The concept actually appeared in the code (backed by a static signal or transcript quote)
+2. It is something a junior developer plausibly used without understanding
+3. It has a name — concepts without names can't be taught
+4. It is specific: "async/await error handling" > "error handling"
+
+Do NOT extract:
+- Trivially obvious things (e.g. "using variables", "calling a function")
+- Framework boilerplate the junior didn't author
+- Concepts with confidence below 0.4`;
+
+/**
  * Build the extraction prompt for the LLM.
+ * Structured to match the calibrated belearn POC prompt from notebook 03.
  */
 function buildExtractionPrompt(
   sessionId: string,
@@ -57,24 +96,50 @@ function buildExtractionPrompt(
   fileStats: { created: number; edited: number }
 ): string {
   const stack = JSON.parse(stackProfile.language_json ?? '[]');
-  const patternSummary = codePatterns
-    .slice(0, 20) // limit to avoid token overflow
-    .map(p => `- ${p.pattern_type}: ${p.name} in ${p.file_path}:${p.line_number ?? '?'}\n  ${p.snippet}`)
-    .join('\n');
 
-  return `You are a developer learning analyst. Analyze this coding session and extract:
-1. A structured session summary (what was built, developer intent, key architectural decisions)
-2. The specific programming concepts encountered during this session
+  const stackSummary = {
+    languages: stack,
+    framework: stackProfile.framework ?? null,
+    orm: stackProfile.orm ?? null,
+    testing: stackProfile.testing ?? null,
+  };
 
-Project: ${projectName}
-Stack: ${stack.join(', ')}${stackProfile.framework ? ` | Framework: ${stackProfile.framework}` : ''}${stackProfile.orm ? ` | ORM: ${stackProfile.orm}` : ''}
-Files created: ${fileStats.created}, Files edited: ${fileStats.edited}
+  // Unique files touched this session
+  const sessionFiles = [...new Set(codePatterns.map(p => p.file_path))].slice(0, 20);
 
-Code patterns detected:
-${patternSummary || '(no patterns detected)'}
+  // Grouped signals (POC format: tag + files + count)
+  const signals = groupSignals(codePatterns).slice(0, 25);
 
-Last assistant message (session context):
+  // Top representative snippets (one per pattern type, max 8)
+  const snippetsByType = new Map<string, CodePattern>();
+  for (const p of codePatterns) {
+    if (!snippetsByType.has(p.pattern_type)) snippetsByType.set(p.pattern_type, p);
+  }
+  const snippets = [...snippetsByType.values()].slice(0, 8);
+  const snippetBlock = snippets
+    .map(p => `[${p.pattern_type}] ${p.file_path}${p.line_number ? `:${p.line_number}` : ''}\n${p.snippet}`)
+    .join('\n\n');
+
+  return `${EXTRACTION_SYSTEM}
+
+---
+
+## Stack Profile
+${JSON.stringify(stackSummary, null, 2)}
+
+## Files Modified This Session (${fileStats.created} created, ${fileStats.edited} edited)
+${sessionFiles.length ? sessionFiles.join('\n') : '(none recorded)'}
+
+## Static Analysis Signals
+${signals.length ? JSON.stringify(signals, null, 2) : '(no patterns detected)'}
+
+## Representative Code Snippets
+${snippetBlock || '(no snippets available)'}
+
+## Session Transcript (last assistant turn)
 ${lastAssistantMessage.slice(0, 1500)}
+
+---
 
 Respond ONLY with this XML structure (no other text):
 
@@ -88,18 +153,19 @@ Respond ONLY with this XML structure (no other text):
   </session_summary>
   <concepts>
     <concept>
-      <name>Exact concept name (e.g., "React Server Components", "Singleton Pattern", "JWT Refresh Tokens")</name>
+      <name>Specific concept name (e.g., "async/await error handling", "Singleton Pattern", "JWT Refresh Tokens")</name>
       <category>One of: ${CONCEPT_CATEGORIES_PROMPT_STRING}</category>
-      <difficulty>One of: beginner, intermediate, advanced</difficulty>
-      <source_file>The primary file where this concept appears (relative path)</source_file>
-      <snippet>2-4 lines of the most illustrative code</snippet>
-      <why_it_matters>Why a developer learning this concept should care about it</why_it_matters>
-      <confidence>0.0 to 1.0 confidence that this concept was meaningfully encountered</confidence>
+      <difficulty>One of: junior, mid, senior</difficulty>
+      <source_file>Primary file where this concept appears (relative path)</source_file>
+      <snippet>2-5 lines of the most illustrative code (from the snippets above if possible)</snippet>
+      <why_it_matters>One sentence: why a junior developer should understand this, not just use it</why_it_matters>
+      <confidence>0.0 to 1.0 — set honestly; 0.9+ means highly certain it appeared AND is worth teaching</confidence>
     </concept>
   </concepts>
 </analysis>
 
-Include 3-8 concepts. Only include concepts where confidence >= 0.6. Focus on concepts a mid-level developer would find valuable to learn about.`;
+Include 3-8 concepts. Omit concepts with confidence below 0.4.
+Prefer specific concept names over broad ones. Ground each concept in a static signal or transcript quote.`;
 }
 
 /**
@@ -135,8 +201,10 @@ function parseExtractionResponse(
     const sourceFile = block.match(/<source_file>([\s\S]*?)<\/source_file>/)?.[1]?.trim() ?? '';
     const snippet = block.match(/<snippet>([\s\S]*?)<\/snippet>/)?.[1]?.trim() ?? '';
     const whyItMatters = block.match(/<why_it_matters>([\s\S]*?)<\/why_it_matters>/)?.[1]?.trim() ?? '';
+    // Parse confidence: extract first numeric value, ignore trailing text (e.g. "0.9 — highly certain")
     const confidenceStr = block.match(/<confidence>([\s\S]*?)<\/confidence>/)?.[1]?.trim() ?? '0.8';
-    const confidence = Math.min(1.0, Math.max(0, parseFloat(confidenceStr) || 0.8));
+    const confidenceNum = parseFloat(confidenceStr.replace(/[^\d.]/g, '').match(/\d+\.?\d*/)?.[0] ?? '0.8');
+    const confidence = Math.min(1.0, Math.max(0, isNaN(confidenceNum) ? 0.8 : confidenceNum));
 
     return {
       id: randomUUID(),
@@ -150,7 +218,8 @@ function parseExtractionResponse(
       confidence,
       created_at: now
     };
-  }).filter(c => c.confidence >= 0.6);
+  // Filter threshold aligned with POC: 0.4 (was 0.6 — too aggressive)
+  }).filter(c => c.confidence >= 0.4);
 
   const conceptNames = concepts.map(c => c.concept_name);
 
