@@ -1,0 +1,88 @@
+---
+title: Installation
+description: Install VibeLearn as a Claude Code plugin
+---
+
+## Requirements
+
+- **Claude Code** with plugin support
+- **Bun** — auto-installed if missing
+- **Node.js** 18+
+
+## Quick Install (Recommended)
+
+```bash
+/plugin install vibelearn
+```
+
+The plugin installs hooks, starts the worker service on port 37778, and runs the analysis pipeline automatically at the end of each session.
+
+## Configure an AI Provider
+
+VibeLearn needs an LLM for concept extraction and quiz generation.
+
+**Provider priority**: Gemini → OpenRouter → Anthropic API
+
+<Tabs>
+  <Tab title="Gemini (Free Tier)">
+    Get a free API key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — 1500 requests/day.
+
+    ```json title="~/.vibelearn/settings.json"
+    {
+      "VIBELEARN_GEMINI_API_KEY": "AIza..."
+    }
+    ```
+  </Tab>
+  <Tab title="OpenRouter">
+    Get a key at [openrouter.ai/keys](https://openrouter.ai/keys). Free models available.
+
+    ```json title="~/.vibelearn/settings.json"
+    {
+      "VIBELEARN_OPENROUTER_API_KEY": "sk-or-..."
+    }
+    ```
+  </Tab>
+  <Tab title="Anthropic (Auto)">
+    Uses `ANTHROPIC_API_KEY` automatically from the Claude Code environment. No extra configuration needed.
+  </Tab>
+</Tabs>
+
+## Verify Installation
+
+```bash
+# Check the worker is running
+curl http://127.0.0.1:37778/api/readiness
+# → {"status":"ready"}
+
+# After a coding session, check what was captured
+vl status
+```
+
+## Install from Source
+
+```bash
+git clone https://github.com/anergcorp/vibelearn.git
+cd vibelearn
+npm install
+npm run build-and-sync
+```
+
+The build compiles TypeScript → ESM hooks and ESM worker → bundles with esbuild. Output lands in `plugin/` and syncs to `~/.claude/plugins/marketplaces/vibelearn/`.
+
+## File Locations
+
+| Path | Purpose |
+|------|---------|
+| `~/.vibelearn/vibelearn.db` | SQLite database (all learning data) |
+| `~/.vibelearn/settings.json` | Settings (AI keys, worker config) |
+| `~/.vibelearn/config.json` | Auth config (written by `vl login`) |
+| `~/.vibelearn/logs/vibelearn-YYYY-MM-DD.log` | Worker logs |
+| `~/.claude/plugins/marketplaces/vibelearn/` | Installed plugin files |
+
+## Uninstall
+
+```bash
+/plugin uninstall vibelearn
+```
+
+Removes the hooks. Your data in `~/.vibelearn/` is preserved.

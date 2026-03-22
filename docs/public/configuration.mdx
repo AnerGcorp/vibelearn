@@ -1,0 +1,111 @@
+---
+title: Configuration
+description: VibeLearn settings, AI providers, and environment variables
+---
+
+## Settings File
+
+All settings live in `~/.vibelearn/settings.json`. Created automatically with defaults on first run.
+
+```json title="~/.vibelearn/settings.json"
+{
+  "VIBELEARN_GEMINI_API_KEY": "",
+  "VIBELEARN_OPENROUTER_API_KEY": "",
+  "VIBELEARN_AUTO_SYNC": "true",
+  "VIBELEARN_LOG_LEVEL": "info",
+  "VIBELEARN_WORKER_PORT": "37778",
+  "VIBELEARN_WORKER_HOST": "127.0.0.1"
+}
+```
+
+## AI Provider Settings
+
+VibeLearn uses LLMs for two steps: concept extraction and quiz generation. Priority order: **Gemini → OpenRouter → Anthropic API**.
+
+### Gemini
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `VIBELEARN_GEMINI_API_KEY` | `""` | API key from [aistudio.google.com](https://aistudio.google.com/apikey) |
+| `VIBELEARN_GEMINI_MODEL` | `gemini-2.5-flash-lite` | Model name |
+| `VIBELEARN_GEMINI_RATE_LIMITING_ENABLED` | `true` | Respect free-tier rate limits |
+
+### OpenRouter
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `VIBELEARN_OPENROUTER_API_KEY` | `""` | API key from [openrouter.ai](https://openrouter.ai/keys) |
+| `VIBELEARN_OPENROUTER_MODEL` | `google/gemini-2.0-flash-exp:free` | Default model |
+
+Free models: `google/gemini-2.0-flash-exp:free`, `xiaomi/mimo-v2-flash:free`
+
+### Anthropic
+
+Uses `ANTHROPIC_API_KEY` from the environment — automatically available in Claude Code sessions. No extra configuration required.
+
+## Sync Settings
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `VIBELEARN_AUTO_SYNC` | `true` | Sync to vibelearn.dev after each session |
+
+Sync payloads are HMAC-signed with your API key (set via `vl login <api-key>`). Failures queue in `vl_sync_queue` and retry next session. Set `"false"` to disable sync entirely — data stays local.
+
+## Worker Settings
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `VIBELEARN_WORKER_PORT` | `37778` | Worker HTTP port |
+| `VIBELEARN_WORKER_HOST` | `127.0.0.1` | Worker bind address |
+| `VIBELEARN_LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+
+## Hook Settings
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `VIBELEARN_EXCLUDED_PROJECTS` | `[]` | Project paths to skip |
+| `VIBELEARN_SKIP_TOOLS` | `[]` | Tool names to skip in observation capture |
+
+## Auth Config
+
+Written automatically by `vl login <api-key>`:
+
+```json title="~/.vibelearn/config.json"
+{
+  "apiKey": "vl-...",
+  "userId": "...",
+  "syncEndpoint": "https://api.vibelearn.dev/v1/sync"
+}
+```
+
+## Minimal Config Examples
+
+<Tabs>
+  <Tab title="Offline (no sync)">
+    ```json
+    {
+      "VIBELEARN_GEMINI_API_KEY": "AIza...",
+      "VIBELEARN_AUTO_SYNC": "false"
+    }
+    ```
+    Concepts and quizzes work locally. No vibelearn.dev account needed.
+  </Tab>
+  <Tab title="With vibelearn.dev">
+    ```json
+    {
+      "VIBELEARN_GEMINI_API_KEY": "AIza...",
+      "VIBELEARN_AUTO_SYNC": "true"
+    }
+    ```
+    Run `vl login <api-key>` to write the auth config.
+  </Tab>
+  <Tab title="OpenRouter only">
+    ```json
+    {
+      "VIBELEARN_OPENROUTER_API_KEY": "sk-or-...",
+      "VIBELEARN_OPENROUTER_MODEL": "google/gemini-2.0-flash-exp:free",
+      "VIBELEARN_AUTO_SYNC": "false"
+    }
+    ```
+  </Tab>
+</Tabs>

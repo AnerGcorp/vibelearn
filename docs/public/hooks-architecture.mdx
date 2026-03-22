@@ -1,0 +1,77 @@
+---
+title: How VibeLearn Uses Hooks
+description: Lifecycle-driven learning capture — observe sessions from outside, analyze in background
+---
+
+## Core Principle
+
+**Observe the main Claude Code session from the outside, analyze in the background, quiz yourself after.**
+
+VibeLearn never modifies your prompts or Claude's responses. It attaches to 5 lifecycle events, captures what you build, and runs a local analysis pipeline when the session ends.
+
+## The 5 Hooks
+
+```
+Claude Code Session
+       │
+       ├── SessionStart      → check worker health, initialize session
+       ├── UserPromptSubmit  → capture prompt, strip <private> tags
+       ├── PostToolUse       → capture file edits, bash commands, tool outputs
+       ├── Stop              → trigger 5-step analysis pipeline
+       └── SessionEnd        → cleanup
+```
+
+### SessionStart
+- Ensures the worker service is running (waits up to 15s with retries)
+- Checks if the project is excluded via `VIBELEARN_EXCLUDED_PROJECTS`
+
+### UserPromptSubmit
+- Strips `<private>...</private>` tags from the prompt before storage
+- Initializes the session in the worker (`POST /api/sessions/init`)
+- Returns `{"continue": true}` immediately — never delays prompts
+
+### PostToolUse
+- Captures every **Write**, **Edit**, **Bash** tool call
+- Records: `tool_type`, `file_path`, `content` (up to 10KB), `cwd`
+- Sends to worker as observations (fire-and-forget, non-blocking)
+
+### Stop (Analysis Trigger)
+Called when the agent loop ends. Triggers the 5 analysis steps sequentially:
+
+```
+1. POST /api/vibelearn/analyze/stack    detect tech stack
+2. POST /api/vibelearn/analyze/static   AST pattern analysis
+3. POST /api/vibelearn/analyze/concepts LLM: session summary + concepts
+4. POST /api/vibelearn/analyze/quiz     LLM: quiz questions per concept
+5. POST /api/vibelearn/sync             HMAC-signed sync to vibelearn.dev
+```
+
+Each step is independent — a failure in one does not block the next.
+
+### SessionEnd
+- Final cleanup
+- Exits with code 0 (never blocks Claude Code from closing)
+
+## Exit Code Philosophy
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success or graceful error — session continues normally |
+| `1` | Non-blocking error — shown to user on stderr, session continues |
+| `2` | Blocking error — fed to Claude for processing (rare) |
+
+All hook errors exit with code `0` to prevent Windows Terminal tab closures.
+
+## Privacy Flow
+
+```
+UserPromptSubmit hook
+    │
+    ├── Strip <private>...</private> tags from input
+    │
+    └── Send sanitized data to worker
+              │
+              └── Database (no private content stored)
+```
+
+The stripping happens at `src/utils/tag-stripping.ts` before any data reaches the worker or SQLite.

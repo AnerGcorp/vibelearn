@@ -1,0 +1,89 @@
+---
+title: Introduction
+description: Learn from every coding session — automatically
+---
+
+# VibeLearn
+
+VibeLearn is a Claude Code plugin that captures what you build during coding sessions, extracts learning concepts, and generates quiz questions. Run `vl quiz` to actually retain what you learn.
+
+## How It Works
+
+Every time a Claude Code session ends, VibeLearn automatically runs a 5-step analysis pipeline:
+
+<Steps>
+  <Step title="Stack Detection">
+    Reads `package.json`, `pyproject.toml`, `go.mod`, etc. to identify your frameworks, ORMs, and tools.
+  </Step>
+  <Step title="Static Analysis">
+    AST-parses files you edited to identify code patterns — custom hooks, API routes, DB queries, auth patterns.
+  </Step>
+  <Step title="Concept Extraction">
+    A single LLM call produces a session narrative + a list of concepts you encountered (e.g., "React Server Actions", "SQLite WAL mode", "HMAC signing").
+  </Step>
+  <Step title="Quiz Generation">
+    A second LLM call generates targeted quiz questions per concept — `multiple_choice`, `fill_in_blank`, and `explain_code` formats.
+  </Step>
+  <Step title="Sync">
+    HMAC-signed sync to vibelearn.dev. Queued offline if unavailable — retried next session.
+  </Step>
+</Steps>
+
+## Quick Start
+
+```bash
+# Install the plugin
+/plugin install vibelearn
+
+# Configure an AI provider (Gemini free tier recommended)
+# Add VIBELEARN_GEMINI_API_KEY to ~/.vibelearn/settings.json
+
+# Code normally in Claude Code...
+# After your session ends, quiz yourself:
+vl quiz
+```
+
+## The `vl` CLI
+
+```bash
+vl quiz              # Interactive quiz — all pending questions
+vl quiz --session    # Quiz from the last session only
+vl status            # Sessions analyzed, top concept categories, mastery
+vl gaps              # Concepts not yet mastered (score < 50%)
+vl login <api-key>   # Connect to vibelearn.dev
+```
+
+## Privacy
+
+Wrap any content in `<private>` tags to prevent storage or sync:
+
+```
+Please review <private>my-api-key: sk-...</private> this config
+```
+
+Content inside `<private>` tags is stripped at the hook layer before reaching the worker or database.
+
+## Architecture
+
+VibeLearn runs as a Claude Code plugin with 5 lifecycle hooks:
+
+```
+SessionStart → UserPromptSubmit → PostToolUse → Stop → SessionEnd
+```
+
+The **worker service** runs locally on port **37778**, handles the analysis pipeline asynchronously, and stores all data in SQLite at `~/.vibelearn/vibelearn.db`.
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Get up and running in 5 minutes
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/architecture/overview">
+    How the pipeline works end-to-end
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration">
+    AI providers and settings
+  </Card>
+  <Card title="Cursor Integration" icon="cursor" href="/cursor">
+    Use VibeLearn with Cursor IDE
+  </Card>
+</CardGroup>

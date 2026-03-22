@@ -1,0 +1,17 @@
+{
+  "name": "vibelearn",
+  "version": "0.1.0",
+  "description": "Developer learning tool — analyze coding sessions, extract concepts, generate quiz questions",
+  "author": {
+    "name": "Ahun Atajanov"
+  },
+  "repository": "https://github.com/anergcorp/vibelearn",
+  "license": "AGPL-3.0",
+  "keywords": [
+    "learning",
+    "quiz",
+    "spaced-repetition",
+    "hooks",
+    "analysis"
+  ]
+}

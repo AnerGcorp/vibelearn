@@ -1,0 +1,125 @@
+---
+title: Hook Lifecycle
+description: Complete guide to VibeLearn's 5-stage hook lifecycle
+---
+
+## Overview
+
+VibeLearn implements 5 Claude Code lifecycle hooks. Each hook is a TypeScript file compiled to an ESM script and run as a subprocess by Claude Code.
+
+```
+Claude Code Agent Loop
+        │
+        ├─ SessionStart      src/hooks/session-start.ts
+        ├─ UserPromptSubmit  src/hooks/user-prompt-submit.ts
+        ├─ PostToolUse       src/hooks/post-tool-use.ts
+        ├─ Stop              src/hooks/summarize.ts
+        └─ SessionEnd        src/hooks/session-end.ts
+```
+
+## Hook 1: SessionStart
+
+**When**: Before the agent loop begins (once per session).
+
+**Input**: `{ session_id, cwd, project }`
+
+**What it does**:
+1. Checks if project is in `VIBELEARN_EXCLUDED_PROJECTS` → exit 0 if excluded
+2. Polls `GET /api/readiness` on port 37778 (up to 75 retries × 200ms = 15s)
+3. If worker unavailable after retries → starts worker via Bun
+4. Returns `{ "continue": true }`
+
+**Exit codes**: Always exits 0 — never blocks session start.
+
+## Hook 2: UserPromptSubmit
+
+**When**: When user submits a prompt.
+
+**Input**: `{ session_id, prompt, cwd }`
+
+**What it does**:
+1. Strips `<private>...</private>` tags from the prompt (via `tag-stripping.ts`)
+2. Posts `{ contentSessionId, project, prompt }` to `POST /api/sessions/init`
+3. Returns `{ "continue": true }` — never modifies the prompt
+
+**Privacy note**: Stripped content is never sent to the worker or stored.
+
+## Hook 3: PostToolUse
+
+**When**: After every tool call (Write, Edit, Bash, MCP tools).
+
+**Input**: `{ session_id, tool_name, tool_input, tool_response, cwd }`
+
+**What it does**:
+- Maps tool_name to observation type:
+  - `Write` / `Edit` → `file_edit` (extracts `file_path`, content truncated at 10KB)
+  - `Bash` → `bash_command`
+  - Other MCP tools → `mcp_tool`
+- Posts observation to `POST /api/sessions/observations` (fire-and-forget)
+- Skips tools in `VIBELEARN_SKIP_TOOLS` setting
+
+**Performance**: Non-blocking. HTTP call is fire-and-forget — PostToolUse never delays Claude.
+
+## Hook 4: Stop (Analysis Trigger)
+
+**When**: Agent loop ends (user stops or Claude finishes).
+
+**Input**: `{ session_id, transcript_path, last_assistant_message }`
+
+**What it does** — calls 5 endpoints sequentially:
+
+```typescript
+await runStep('/api/vibelearn/analyze/stack',    { contentSessionId })
+await runStep('/api/vibelearn/analyze/static',   { contentSessionId })
+await runStep('/api/vibelearn/analyze/concepts', { contentSessionId, last_assistant_message })
+await runStep('/api/vibelearn/analyze/quiz',     { contentSessionId })
+await runStep('/api/vibelearn/sync',             { contentSessionId })
+```
+
+Each step is independent — a timeout or error in one does not block the rest.
+
+**Timeouts**: Each step has a 60s timeout. LLM calls (concepts, quiz) may take 10–30s depending on provider.
+
+## Hook 5: SessionEnd
+
+**When**: Session fully ends (process exiting).
+
+**What it does**: Final cleanup — logs session end, exits 0.
+
+## Session State Machine
+
+```
+        init
+          │
+          ▼
+     initialized ──── PostToolUse ────▶ observations
+          │                              accumulate
+          │
+    Stop hook fires
+          │
+          ▼
+    analyzing (5 steps)
+          │
+          ▼
+     analyzed + synced
+```
+
+## Worker Communication
+
+All hooks communicate with the worker over HTTP on `localhost:37778`. The worker must be running for hooks to function.
+
+If the worker is down:
+- **SessionStart** attempts to restart it
+- **PostToolUse** fails silently (fire-and-forget)
+- **Stop** each pipeline step fails independently and logs the error
+
+## Implementation Reference
+
+Built hooks are at:
+- `plugin/scripts/session-start-hook.js`
+- `plugin/scripts/user-prompt-submit-hook.js`
+- `plugin/scripts/post-tool-use-hook.js`
+- `plugin/scripts/summarize-hook.js`
+- `plugin/scripts/session-end-hook.js`
+
+Source in `src/hooks/*.ts`. Built with esbuild (`scripts/build-hooks.js`).

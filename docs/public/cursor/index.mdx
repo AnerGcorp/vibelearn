@@ -1,0 +1,80 @@
+---
+title: Cursor Integration
+description: Capture coding sessions in Cursor — learn from every agent session
+---
+
+## Overview
+
+VibeLearn works with Cursor via hook scripts. When a Cursor agent session ends, the same 5-step analysis pipeline runs (stack detection → concept extraction → quiz generation).
+
+## Quick Install
+
+```bash
+# Clone and build
+git clone https://github.com/anergcorp/vibelearn.git
+cd vibelearn && bun install && bun run build
+
+# Install hooks for all projects (recommended)
+bun run cursor:install -- user
+
+# Start the worker
+bun run worker:start
+```
+
+Then restart Cursor to load the hooks.
+
+## Configure an AI Provider
+
+```json title="~/.vibelearn/settings.json"
+{
+  "VIBELEARN_GEMINI_API_KEY": "AIza..."
+}
+```
+
+See [Gemini Setup](/cursor/gemini-setup) or [OpenRouter Setup](/cursor/openrouter-setup) for full guides.
+
+## What Gets Captured
+
+| Cursor Hook | VibeLearn Action |
+|-------------|-----------------|
+| `beforeSubmitPrompt` | Initialize session |
+| `afterFileEdit` | Capture file edits |
+| `afterMCPExecution` | Capture MCP tool usage |
+| `afterShellExecution` | Capture shell commands |
+| `stop` | Trigger analysis pipeline |
+
+## After a Session
+
+```bash
+vl status     # Check what was analyzed
+vl quiz       # Quiz yourself
+vl gaps       # See weak areas
+```
+
+## How It Differs from Claude Code
+
+| Feature | Claude Code | Cursor |
+|---------|-------------|--------|
+| Hooks | Native plugin hooks | Bash scripts in `.cursor/hooks/` |
+| Transcript | ✅ Available | ❌ Not available |
+| Analysis pipeline | ✅ Full (with transcript context) | ✅ Full (file edits only) |
+| Port | 37778 | 37778 |
+
+The main limitation: Cursor doesn't provide transcript access, so concept extraction uses file edit observations only (still effective for most sessions).
+
+## Troubleshooting
+
+**Hooks not running:**
+```bash
+chmod +x ~/.cursor/hooks/*.sh
+# Check Cursor Settings → Hooks tab
+```
+
+**Worker not responding:**
+```bash
+curl http://127.0.0.1:37778/api/readiness
+tail -f ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log
+```
+
+**No quiz questions:**
+Verify AI provider key is set in `~/.vibelearn/settings.json` and check worker logs for LLM errors.

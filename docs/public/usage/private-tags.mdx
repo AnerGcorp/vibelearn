@@ -1,0 +1,79 @@
+---
+title: Private Tags
+description: Control what gets stored — wrap sensitive content in <private> tags
+---
+
+## Overview
+
+Wrap any content in `<private>` tags to prevent it from being stored in the database or synced upstream.
+
+```
+Please review <private>my-api-key: sk-abc123</private> — is this config structure correct?
+```
+
+The `<private>` tags and everything between them are stripped **at the hook layer** before any data reaches the worker or SQLite database.
+
+## How It Works
+
+Stripping happens in `src/utils/tag-stripping.ts`, called from the `UserPromptSubmit` hook:
+
+```
+User types prompt
+      │
+      ▼
+UserPromptSubmit hook
+      │
+      ├─ stripPrivateTags(prompt)
+      │    └─ regex removes <private>...</private> blocks
+      │
+      └─ sends sanitized prompt to worker
+```
+
+The original prompt is **never stored** — only the sanitized version.
+
+## Use Cases
+
+**API keys and credentials**
+```
+Set up auth with <private>STRIPE_SECRET_KEY=sk_live_abc123</private>
+```
+
+**Sensitive business logic**
+```
+Build a pricing calculator for <private>our margin is 40% on all products</private>
+```
+
+**Personal information**
+```
+Write a test using <private>user: john@example.com, password: hunter2</private>
+```
+
+**Temporary debugging context**
+```
+The error is at line 47 — <private>full stack trace with internal paths</private>
+```
+
+## What Is Still Stored
+
+Content **outside** `<private>` tags is captured normally:
+- File paths you edited (basename only in upstream sync)
+- File content from Write/Edit tools (up to 10KB per file)
+- Bash command text and output
+
+## Best Practices
+
+- Use `<private>` for API keys, passwords, personal data, and internal business logic
+- The tag content is completely removed — the sanitized prompt still makes sense to Claude
+- Tags work in any prompt position: beginning, middle, or end
+- Nested tags are not supported — one level only
+
+## Verification
+
+After a session, you can inspect what was stored:
+
+```bash
+sqlite3 ~/.vibelearn/vibelearn.db \
+  "SELECT content FROM observations ORDER BY created_at DESC LIMIT 5;"
+```
+
+Private content will not appear.

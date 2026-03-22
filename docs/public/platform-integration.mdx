@@ -1,0 +1,130 @@
+---
+title: Platform Integration
+description: Integrate VibeLearn's worker API into other IDEs and tools
+icon: plug
+---
+
+## Worker API Quick Reference
+
+The VibeLearn worker runs on **port 37778** by default. All endpoints are `localhost`-only.
+
+```bash
+# Health check
+curl http://127.0.0.1:37778/api/health
+
+# Readiness (used by hooks)
+curl http://127.0.0.1:37778/api/readiness
+```
+
+## Session Lifecycle Integration
+
+To integrate VibeLearn into any IDE or tool, call these endpoints in order:
+
+### 1. Initialize Session (on session start)
+
+```bash
+curl -X POST http://127.0.0.1:37778/api/sessions/init \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contentSessionId": "unique-session-id",
+    "project": "my-project",
+    "prompt": "First prompt text"
+  }'
+```
+
+### 2. Record Observations (per tool use / file edit)
+
+```bash
+curl -X POST http://127.0.0.1:37778/api/sessions/observations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contentSessionId": "unique-session-id",
+    "tool_type": "file_edit",
+    "file_path": "src/auth.ts",
+    "content": "export function signToken...",
+    "cwd": "/path/to/project"
+  }'
+```
+
+**`tool_type` values**: `file_edit`, `bash_command`, `mcp_tool`
+
+### 3. Trigger Analysis Pipeline (on session end)
+
+Call these 5 endpoints sequentially after the session ends:
+
+```bash
+SESSION_ID="unique-session-id"
+BASE="http://127.0.0.1:37778"
+
+curl -X POST "$BASE/api/vibelearn/analyze/stack" \
+  -d "{\"contentSessionId\":\"$SESSION_ID\"}"
+
+curl -X POST "$BASE/api/vibelearn/analyze/static" \
+  -d "{\"contentSessionId\":\"$SESSION_ID\"}"
+
+curl -X POST "$BASE/api/vibelearn/analyze/concepts" \
+  -d "{\"contentSessionId\":\"$SESSION_ID\",\"last_assistant_message\":\"\"}"
+
+curl -X POST "$BASE/api/vibelearn/analyze/quiz" \
+  -d "{\"contentSessionId\":\"$SESSION_ID\"}"
+
+curl -X POST "$BASE/api/vibelearn/sync" \
+  -d "{\"contentSessionId\":\"$SESSION_ID\"}"
+```
+
+Each step is independent — a failure in one does not block the rest.
+
+## Full API Reference
+
+### Session Endpoints
+
+| Method | Path | Body | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/sessions/init` | `{contentSessionId, project, prompt}` | Initialize session |
+| `POST` | `/api/sessions/observations` | `{contentSessionId, tool_type, file_path?, content?, cwd}` | Store observation |
+| `GET` | `/api/sessions/:id/summary` | — | Get session summary |
+
+### Analysis Pipeline
+
+| Method | Path | Body | Description |
+|--------|------|------|-------------|
+| `POST` | `/api/vibelearn/analyze/stack` | `{contentSessionId}` | Detect tech stack |
+| `POST` | `/api/vibelearn/analyze/static` | `{contentSessionId}` | AST pattern analysis |
+| `POST` | `/api/vibelearn/analyze/concepts` | `{contentSessionId, last_assistant_message?}` | LLM concept extraction |
+| `POST` | `/api/vibelearn/analyze/quiz` | `{contentSessionId}` | LLM quiz generation |
+| `POST` | `/api/vibelearn/sync` | `{contentSessionId}` | Upstream sync |
+
+### Learning Data
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/vibelearn/profile` | Developer mastery profile |
+| `GET` | `/api/vibelearn/questions/pending` | Unanswered quiz questions |
+
+### System
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/health` | Full health info |
+| `GET` | `/api/readiness` | `{"status":"ready"}` |
+| `POST` | `/api/admin/restart` | Restart worker |
+| `POST` | `/api/admin/shutdown` | Shutdown worker |
+
+## Environment Variables
+
+The worker reads from `~/.vibelearn/settings.json`:
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `VIBELEARN_WORKER_PORT` | `37778` | HTTP port |
+| `VIBELEARN_GEMINI_API_KEY` | `""` | Gemini API key |
+| `VIBELEARN_OPENROUTER_API_KEY` | `""` | OpenRouter API key |
+| `VIBELEARN_AUTO_SYNC` | `true` | Sync to vibelearn.dev |
+
+## Minimal Platform Integration Checklist
+
+- [ ] Call `/api/readiness` on startup — wait up to 15s for worker
+- [ ] Call `/api/sessions/init` when a new session starts
+- [ ] Call `/api/sessions/observations` for each file edit/tool use (fire-and-forget)
+- [ ] Call the 5 analysis endpoints sequentially when session ends
+- [ ] All calls are localhost — no external network required

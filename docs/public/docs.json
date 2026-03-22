@@ -1,0 +1,141 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "VibeLearn",
+  "description": "Learn from every coding session — concept extraction and quiz generation for Claude Code",
+  "theme": "mint",
+  "favicon": "/vibelearn-logomark.webp",
+  "logo": {
+    "light": "/vibelearn-logo-for-light-mode.webp",
+    "dark": "/vibelearn-logo-for-dark-mode.webp",
+    "href": "https://vibelearn.dev"
+  },
+  "colors": {
+    "primary": "#3B82F6",
+    "light": "#EFF6FF",
+    "dark": "#1E40AF"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/anergcorp/vibelearn"
+      },
+      {
+        "label": "Dashboard",
+        "href": "https://vibelearn.dev"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Install Plugin",
+      "href": "/installation"
+    }
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "icon": "rocket",
+        "pages": [
+          "introduction",
+          "installation",
+          "usage/getting-started",
+          "usage/private-tags"
+        ]
+      },
+      {
+        "group": "AI Providers",
+        "icon": "microchip",
+        "pages": [
+          "usage/gemini-provider",
+          "usage/openrouter-provider"
+        ]
+      },
+      {
+        "group": "Cursor Integration",
+        "icon": "wand-magic-sparkles",
+        "pages": [
+          "cursor/index",
+          "cursor/gemini-setup",
+          "cursor/openrouter-setup"
+        ]
+      },
+      {
+        "group": "Configuration & Development",
+        "icon": "gear",
+        "pages": [
+          "configuration",
+          "development",
+          "troubleshooting",
+          "platform-integration"
+        ]
+      },
+      {
+        "group": "Architecture",
+        "icon": "diagram-project",
+        "pages": [
+          "architecture/overview",
+          "hooks-architecture",
+          "architecture/hooks",
+          "architecture/worker-service",
+          "architecture/database"
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/anergcorp/vibelearn"
+    },
+    "links": [
+      {
+        "header": "Resources",
+        "items": [
+          {
+            "label": "vibelearn.dev",
+            "href": "https://vibelearn.dev"
+          },
+          {
+            "label": "GitHub",
+            "href": "https://github.com/anergcorp/vibelearn"
+          },
+          {
+            "label": "Issues",
+            "href": "https://github.com/anergcorp/vibelearn/issues"
+          }
+        ]
+      },
+      {
+        "header": "Legal",
+        "items": [
+          {
+            "label": "License (AGPL-3.0)",
+            "href": "https://github.com/anergcorp/vibelearn/blob/main/LICENSE"
+          }
+        ]
+      }
+    ]
+  },
+  "seo": {
+    "indexing": "all",
+    "metatags": {
+      "og:type": "website",
+      "og:site_name": "VibeLearn Documentation",
+      "og:description": "Learn from every coding session — concept extraction and quiz generation for Claude Code"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "cursor"
+    ]
+  },
+  "integrations": {
+    "telemetry": {
+      "enabled": false
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "env": {
+    "VIBELEARN_WORKER_PORT": "37778",
+    "VIBELEARN_DATA_DIR": "~/.vibelearn"
+  },
+  "permissions": {
+    "deny": [
+      "Read(./package-lock.json)",
+      "Read(./node_modules/**)",
+      "Read(./.DS_Store)"
+    ]
+  }
+}

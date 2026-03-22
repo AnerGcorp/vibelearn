@@ -1,0 +1,17 @@
+{
+  "name": "vibelearn",
+  "version": "1.0.1",
+  "description": "Persistent memory system for Claude Code - seamlessly preserve context across sessions",
+  "author": {
+    "name": "Ahun Atajanov"
+  },
+  "repository": "https://github.com/anergcorp/vibelearn",
+  "license": "AGPL-3.0",
+  "keywords": [
+    "memory",
+    "context",
+    "persistence",
+    "hooks",
+    "mcp"
+  ]
+}

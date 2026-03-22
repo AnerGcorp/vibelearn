@@ -1,0 +1,60 @@
+---
+title: Cursor + OpenRouter Setup
+description: Use VibeLearn in Cursor with OpenRouter's 100+ AI models
+---
+
+## Why OpenRouter for Cursor
+
+OpenRouter provides access to many models including free options. Good as a primary provider or fallback when Gemini hits rate limits.
+
+## Step 1: Get an OpenRouter Key
+
+1. Go to [openrouter.ai/keys](https://openrouter.ai/keys)
+2. Sign up and create a key (starts with `sk-or-`)
+
+## Step 2: Configure VibeLearn
+
+```bash
+mkdir -p ~/.vibelearn
+cat > ~/.vibelearn/settings.json << 'EOF'
+{
+  "VIBELEARN_OPENROUTER_API_KEY": "sk-or-YOUR_KEY_HERE",
+  "VIBELEARN_OPENROUTER_MODEL": "google/gemini-2.0-flash-exp:free"
+}
+EOF
+```
+
+**Free model options:**
+- `google/gemini-2.0-flash-exp:free` — recommended
+- `xiaomi/mimo-v2-flash:free` — fast, smaller context
+
+## Step 3: Install Cursor Hooks
+
+```bash
+bun run cursor:install -- user
+bun run worker:start
+```
+
+Restart Cursor to load the hooks.
+
+## Step 4: Verify
+
+```bash
+curl http://127.0.0.1:37778/api/readiness
+# → {"status":"ready"}
+```
+
+Run an agent session, then `vl quiz` to see questions.
+
+## Combining Gemini + OpenRouter
+
+For maximum reliability, configure both:
+
+```json
+{
+  "VIBELEARN_GEMINI_API_KEY": "AIza...",
+  "VIBELEARN_OPENROUTER_API_KEY": "sk-or-..."
+}
+```
+
+VibeLearn tries Gemini first. If it fails or hits rate limits, it falls back to OpenRouter.

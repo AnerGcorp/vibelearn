@@ -1,0 +1,52 @@
+---
+title: OpenRouter Provider
+description: Access 100+ AI models through OpenRouter — including free options
+---
+
+## Overview
+
+OpenRouter gives VibeLearn access to 100+ models through a single API. Useful as a fallback when Gemini hits rate limits, or if you prefer a different model for concept extraction.
+
+## Setup
+
+### 1. Get an API Key
+
+Sign up at [openrouter.ai/keys](https://openrouter.ai/keys).
+
+### 2. Add to Settings
+
+```json title="~/.vibelearn/settings.json"
+{
+  "VIBELEARN_OPENROUTER_API_KEY": "sk-or-..."
+}
+```
+
+## Free Models
+
+| Model | Context | Notes |
+|-------|---------|-------|
+| `google/gemini-2.0-flash-exp:free` | 1M tokens | Recommended free option |
+| `xiaomi/mimo-v2-flash:free` | 32K tokens | Fast, good for short sessions |
+
+Set a specific model:
+```json
+{
+  "VIBELEARN_OPENROUTER_API_KEY": "sk-or-...",
+  "VIBELEARN_OPENROUTER_MODEL": "google/gemini-2.0-flash-exp:free"
+}
+```
+
+## Provider Priority
+
+If both Gemini and OpenRouter are configured, Gemini is tried first. Set only `VIBELEARN_OPENROUTER_API_KEY` (without Gemini key) to use OpenRouter exclusively.
+
+## Troubleshooting
+
+**No output / empty response** — Free models may be slow or at capacity. Try a different free model or use a paid model.
+
+**`402 Payment Required`** — Model requires credits. Switch to a `:free` model or add OpenRouter credits.
+
+**Check which provider was used:**
+```bash
+grep "provider" ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log | tail -5
+```

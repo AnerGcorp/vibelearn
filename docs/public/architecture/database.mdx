@@ -1,0 +1,150 @@
+---
+title: Database Architecture
+description: SQLite schema — all VibeLearn tables explained
+---
+
+## Database Location
+
+```
+~/.vibelearn/vibelearn.db
+```
+
+SQLite3. All vl-specific tables use the `vl_` prefix. Core session tables retain the original `sdk_sessions` and `observations` names.
+
+## Core Tables (Session Tracking)
+
+### `sdk_sessions`
+
+Tracks every Claude Code session.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `content_session_id` | TEXT UNIQUE | Claude Code's session ID (from hook input) |
+| `memory_session_id` | TEXT | SDK agent's internal session ID (enables resume) |
+| `project` | TEXT | Project name (workspace basename) |
+| `created_at` | TEXT | ISO timestamp |
+
+### `observations`
+
+Every tool use captured during sessions.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `session_id` | TEXT | = `memory_session_id` from sdk_sessions |
+| `type` | TEXT | `file_edit`, `bash_command`, `mcp_tool`, etc. |
+| `file_path` | TEXT | File affected (if applicable) |
+| `content` | TEXT | Tool output or file content (truncated at 10KB) |
+| `files_modified` | JSON | Array of file paths modified in this turn |
+| `created_at` | INTEGER | Unix timestamp |
+
+## VibeLearn Tables (`vl_` prefix)
+
+### `vl_concepts`
+
+Concepts extracted from sessions by ConceptExtractor.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PK | Auto-increment |
+| `content_session_id` | TEXT | Links to sdk_sessions |
+| `name` | TEXT | Concept name (e.g., "React Server Actions") |
+| `category` | TEXT | Category (e.g., "React", "Database", "Auth") |
+| `description` | TEXT | Brief explanation |
+| `difficulty` | TEXT | `beginner`, `intermediate`, `advanced` |
+| `encounter_count` | INTEGER | Times seen across sessions |
+
+### `vl_questions`
+
+Quiz questions generated per concept.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PK | Auto-increment |
+| `concept_id` | INTEGER | FK to vl_concepts |
+| `content_session_id` | TEXT | Source session |
+| `type` | TEXT | `multiple_choice`, `fill_in_blank`, `explain_code` |
+| `question` | TEXT | Question text |
+| `answer` | TEXT | Correct answer |
+| `distractors` | JSON | Wrong options (for multiple choice) |
+| `code_snippet` | TEXT | Code context (if applicable) |
+
+### `vl_quiz_attempts`
+
+Records every quiz answer.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PK | Auto-increment |
+| `question_id` | INTEGER | FK to vl_questions |
+| `is_correct` | INTEGER | 0 or 1 |
+| `response_time_ms` | INTEGER | How long to answer |
+| `hmac_signature` | TEXT | Anti-tamper signature |
+| `created_at` | INTEGER | Unix timestamp |
+
+Attempts are HMAC-signed with the user's API key: `HMAC(apiKey, questionId + isCorrect + createdAt)`. The server validates signatures before updating mastery.
+
+### `vl_developer_profile`
+
+Mastery tracking per concept name.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `concept_name` | TEXT UNIQUE | Concept identifier |
+| `mastery_score` | REAL | 0.0–1.0. Server-computed from quiz attempts |
+| `encounter_count` | INTEGER | Times encountered across sessions |
+| `last_seen_at` | INTEGER | Unix timestamp |
+
+**Note**: `mastery_score` is server-authoritative. Local value is a cache — overwritten on sync.
+
+### `vl_stack_profiles`
+
+Tech stack detected per session.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `content_session_id` | TEXT UNIQUE | Source session |
+| `language` | TEXT | e.g., `typescript`, `python` |
+| `framework` | TEXT | e.g., `nextjs`, `fastapi` |
+| `orm` | TEXT | e.g., `prisma`, `sqlalchemy` |
+| `testing` | TEXT | e.g., `jest`, `pytest` |
+| `detected_at` | INTEGER | Unix timestamp |
+
+### `vibelearn_session_summaries`
+
+Human-readable narrative per session.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `content_session_id` | TEXT UNIQUE | Source session |
+| `what_was_built` | TEXT | Narrative description |
+| `synced_at` | INTEGER | When synced to vibelearn.dev (NULL if pending) |
+| `created_at` | INTEGER | Unix timestamp |
+
+### `vl_sync_queue`
+
+Offline sync queue. Populated when upstream sync fails.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PK | Auto-increment |
+| `payload_type` | TEXT | e.g., `session_analysis` |
+| `payload_json` | TEXT | Serialized payload |
+| `status` | TEXT | `pending`, `synced`, `failed` |
+| `attempts` | INTEGER | Retry count |
+| `last_attempted_at` | INTEGER | Unix timestamp |
+
+Max attempts: 5. After that, status becomes `failed`.
+
+### `vl_daily_streaks`
+
+Local streak cache. **Server is authoritative** — this is never trusted for official streak data.
+
+## Migrations
+
+Migrations run automatically on worker startup via `DatabaseManager`. Each migration has an integer ID. Migration 008 added all `vl_` tables.
+
+```typescript
+// src/services/sqlite/migrations.ts
+// Add a new migration at the end of the array
+{ id: 9, sql: `ALTER TABLE vl_concepts ADD COLUMN ...` }
+```

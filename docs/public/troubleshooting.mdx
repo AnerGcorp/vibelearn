@@ -1,0 +1,141 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for VibeLearn
+---
+
+## Worker Not Running
+
+**Symptom**: No quiz questions after sessions. `vl status` shows no sessions.
+
+```bash
+# Check if worker is running
+curl http://127.0.0.1:37778/api/readiness
+# Should return: {"status":"ready"}
+
+# View logs
+tail -50 ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log
+
+# Restart worker
+bun ~/.claude/plugins/marketplaces/vibelearn/scripts/worker-wrapper.cjs restart
+```
+
+## No Quiz Questions After Session
+
+**Check 1: Was an AI provider configured?**
+```bash
+cat ~/.vibelearn/settings.json
+# Should have VIBELEARN_GEMINI_API_KEY or VIBELEARN_OPENROUTER_API_KEY
+```
+
+**Check 2: Did the analysis pipeline run?**
+```bash
+grep "analyze" ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log | tail -20
+```
+
+**Check 3: Were any files edited?**
+VibeLearn needs Write/Edit observations to generate meaningful concepts. Sessions that only read files may produce no concepts.
+
+**Check 4: LLM provider errors?**
+```bash
+grep -i "error\|gemini\|openrouter" ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log | tail -20
+```
+
+## Hooks Not Firing
+
+**Claude Code:**
+1. Check plugin is installed: `/plugin list` — should show `vibelearn`
+2. Verify hooks in `~/.claude/plugins/marketplaces/vibelearn/`
+3. Reload Claude Code
+
+**Cursor:**
+```bash
+# Verify hook scripts are executable
+chmod +x ~/.cursor/hooks/*.sh
+
+# Check Cursor Settings → Hooks tab for errors
+```
+
+## Database Issues
+
+**Database locked:**
+```bash
+# Check for stuck processes
+lsof ~/.vibelearn/vibelearn.db
+
+# If safe, kill them and restart worker
+```
+
+**Inspect the database directly:**
+```bash
+sqlite3 ~/.vibelearn/vibelearn.db << 'SQL'
+SELECT COUNT(*) as sessions FROM sdk_sessions;
+SELECT COUNT(*) as concepts FROM vl_concepts;
+SELECT COUNT(*) as questions FROM vl_questions;
+SELECT COUNT(*) as pending FROM vl_questions
+  WHERE id NOT IN (SELECT question_id FROM vl_quiz_attempts);
+SQL
+```
+
+## `vl quiz` Shows No Questions
+
+```bash
+# Check pending questions
+sqlite3 ~/.vibelearn/vibelearn.db \
+  "SELECT COUNT(*) FROM vl_questions WHERE id NOT IN (SELECT question_id FROM vl_quiz_attempts);"
+```
+
+If 0: No questions generated yet — check LLM provider and run another session.
+
+If > 0: CLI issue. Check:
+```bash
+vl status   # Shows if `vl` CLI can connect to DB
+```
+
+## Sync Failures
+
+```bash
+# Check sync queue
+sqlite3 ~/.vibelearn/vibelearn.db \
+  "SELECT status, attempts, last_attempted_at FROM vl_sync_queue ORDER BY id DESC LIMIT 10;"
+```
+
+If `status = 'failed'` with 5 attempts: sync permanently failed. Check:
+1. `vl login <api-key>` — verify API key is set
+2. Network connectivity to `api.vibelearn.dev`
+
+## Port 37778 Already in Use
+
+```bash
+lsof -i :37778
+
+# Or change the port
+# ~/.vibelearn/settings.json: "VIBELEARN_WORKER_PORT": "37779"
+```
+
+## Gemini Rate Limit
+
+The free Gemini tier allows 1500 requests/day. VibeLearn uses 2 per session (concepts + quiz).
+
+If you hit the limit:
+1. Wait until midnight Pacific (resets daily)
+2. Add an OpenRouter key as fallback: `"VIBELEARN_OPENROUTER_API_KEY": "sk-or-..."`
+
+## Check Installed Version
+
+```bash
+cat ~/.claude/plugins/marketplaces/vibelearn/package.json | jq .version
+```
+
+## Full Reset (Last Resort)
+
+```bash
+# Stop worker
+curl -X POST http://127.0.0.1:37778/api/admin/shutdown
+
+# Delete database (DESTROYS ALL LEARNING DATA)
+rm ~/.vibelearn/vibelearn.db
+
+# Reinstall
+/plugin uninstall vibelearn
+/plugin install vibelearn
+```

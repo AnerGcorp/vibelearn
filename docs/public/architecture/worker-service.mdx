@@ -1,0 +1,156 @@
+---
+title: Worker Service
+description: HTTP API on port 37778 — analysis pipeline, session management, system endpoints
+---
+
+## Overview
+
+The VibeLearn worker is an Express.js HTTP server managed by Bun, running on port **37778**. It handles:
+- Session lifecycle (init, observations)
+- The 5-step analysis pipeline
+- Upstream sync with retry queue
+- System health and admin
+
+## Startup
+
+The worker is started by `SessionStart` hook if not already running:
+
+```bash
+# Manual start
+bun plugin/scripts/worker-service.cjs start
+
+# Status
+curl http://127.0.0.1:37778/api/health | jq .
+
+# Readiness (used by hooks)
+curl http://127.0.0.1:37778/api/readiness
+```
+
+The worker is kept alive by `plugin/scripts/worker-wrapper.cjs` (Bun-managed). Environment variable `VIBELEARN_MANAGED=true` is set in the worker process.
+
+## API Endpoints
+
+### Session Management
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/sessions/init` | Initialize a new session |
+| `POST` | `/api/sessions/observations` | Store a tool observation |
+| `GET` | `/api/sessions/:id/summary` | Get session summary |
+
+**`POST /api/sessions/init`**
+```json
+{
+  "contentSessionId": "session-abc",
+  "project": "my-app",
+  "prompt": "Add authentication"
+}
+```
+
+**`POST /api/sessions/observations`**
+```json
+{
+  "contentSessionId": "session-abc",
+  "tool_type": "file_edit",
+  "file_path": "src/auth.ts",
+  "content": "export function...",
+  "cwd": "/Users/me/my-app"
+}
+```
+
+### VibeLearn Analysis Pipeline
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/vibelearn/analyze/stack` | Detect tech stack |
+| `POST` | `/api/vibelearn/analyze/static` | AST pattern analysis |
+| `POST` | `/api/vibelearn/analyze/concepts` | LLM concept extraction |
+| `POST` | `/api/vibelearn/analyze/quiz` | LLM quiz generation |
+| `POST` | `/api/vibelearn/sync` | Sync to vibelearn.dev |
+
+All analysis endpoints accept `{ contentSessionId }`. The concepts endpoint also accepts `{ last_assistant_message }`.
+
+**Concept extraction response:**
+```json
+{
+  "ok": true,
+  "concepts": ["React Server Actions", "HMAC signing", "SQLite WAL mode"],
+  "summary": "Built auth middleware with HMAC-signed tokens..."
+}
+```
+
+### VibeLearn Data
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/vibelearn/profile` | Developer mastery profile |
+| `GET` | `/api/vibelearn/questions/pending` | Unanswered quiz questions |
+
+### System
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/health` | Full health check |
+| `GET` | `/api/readiness` | Simple ready check (used by hooks) |
+| `POST` | `/api/admin/restart` | Restart worker (requires VIBELEARN_MANAGED=true) |
+| `POST` | `/api/admin/shutdown` | Shutdown worker |
+
+## Analysis Pipeline Implementation
+
+Each analysis endpoint is implemented in `src/services/worker/http/routes/VibeLearnRoutes.ts`:
+
+```
+POST /analyze/stack
+  └─ StackDetector.detect(filePaths)
+       └─ reads package.json, pyproject.toml, go.mod etc.
+       └─ writes to vl_stack_profiles
+
+POST /analyze/static
+  └─ StaticAnalyzer.analyze(sessionId)
+       └─ reads modified files from disk (aggregated from observations)
+       └─ tree-sitter AST parsing
+
+POST /analyze/concepts
+  └─ createAgentRunner() — tries Gemini → OpenRouter → Anthropic
+  └─ ConceptExtractor.extract(prompt)
+       └─ single LLM call
+       └─ writes to vl_concepts + vibelearn_session_summaries
+
+POST /analyze/quiz
+  └─ QuizGenerator.generate(concepts)
+       └─ single LLM call, skips concepts with mastery_score > 0.85
+       └─ writes to vl_questions
+
+POST /sync
+  └─ UpstreamSync.sync(sessionId)
+       └─ HMAC signs payload with user's API key
+       └─ POST to api.vibelearn.dev/v1/sync
+       └─ on failure: OfflineQueue.enqueue() → retried next sync
+```
+
+## LLM Provider Selection
+
+`createAgentRunner()` in VibeLearnRoutes creates a `(prompt: string) => Promise<string>` function that tries providers in order:
+
+1. **Gemini** — if `VIBELEARN_GEMINI_API_KEY` is set in settings
+2. **OpenRouter** — if `VIBELEARN_OPENROUTER_API_KEY` is set
+3. **Anthropic** — direct HTTP to `api.anthropic.com` using `ANTHROPIC_API_KEY`
+
+## Logs
+
+```bash
+# View today's logs
+tail -f ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log
+```
+
+Log level controlled by `VIBELEARN_LOG_LEVEL` in settings.
+
+## Route Registration
+
+Routes are registered in `WorkerService.registerRoutes()`:
+
+```typescript
+this.server.registerRoutes(new SessionRoutes(this.dbManager));
+this.server.registerRoutes(new VibeLearnRoutes(this.dbManager));
+// ...other route handlers
+```

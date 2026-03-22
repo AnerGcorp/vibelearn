@@ -1,0 +1,19 @@
+{
+  "name": "anergcorp",
+  "owner": {
+    "name": "Ahun Atajanov",
+    "email": "aatajanov@pragmaticdevs.io "
+  },
+  "metadata": {
+    "description": "Plugins by Ahun Atajanov (anergcorp)",
+    "homepage": "https://github.com/anergcorp/vibelearn"
+  },
+  "plugins": [
+    {
+      "name": "vibelearn",
+      "version": "0.1.0",
+      "source": "./plugin",
+      "description": "Persistent memory system for Claude Code - context compression across sessions"
+    }
+  ]
+}

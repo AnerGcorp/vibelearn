@@ -1,0 +1,62 @@
+---
+title: Cursor + Gemini Setup
+description: Use VibeLearn in Cursor with Google's free Gemini API
+---
+
+## Why Gemini for Cursor
+
+When using Cursor without Claude Code, you need to configure an AI provider for VibeLearn's concept extraction and quiz generation. Gemini's free tier (1500 req/day) is more than sufficient.
+
+## Step 1: Get a Gemini API Key
+
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+2. Sign in with a Google account
+3. Click **Create API key**
+4. Copy the key (starts with `AIza`)
+
+## Step 2: Configure VibeLearn
+
+```bash
+mkdir -p ~/.vibelearn
+cat > ~/.vibelearn/settings.json << 'EOF'
+{
+  "VIBELEARN_GEMINI_API_KEY": "AIza_YOUR_KEY_HERE"
+}
+EOF
+```
+
+## Step 3: Install Cursor Hooks
+
+```bash
+# From the vibelearn repo directory
+bun run cursor:install -- user
+bun run worker:start
+```
+
+Restart Cursor to load the hooks.
+
+## Step 4: Verify
+
+```bash
+# Worker should be running
+curl http://127.0.0.1:37778/api/readiness
+# → {"status":"ready"}
+```
+
+Run an agent session in Cursor, then:
+```bash
+vl status    # Should show a session analyzed
+vl quiz      # Quiz questions from your session
+```
+
+## Troubleshooting
+
+**`API key not valid`** — Key must start with `AIza`. Re-copy from AI Studio.
+
+**`RESOURCE_EXHAUSTED`** — Hit the 1500/day free limit. Resets midnight Pacific. Set up OpenRouter as a fallback:
+```json
+{
+  "VIBELEARN_GEMINI_API_KEY": "AIza...",
+  "VIBELEARN_OPENROUTER_API_KEY": "sk-or-..."
+}
+```

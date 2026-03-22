@@ -1,0 +1,146 @@
+---
+title: Architecture Overview
+description: System components and data flow in VibeLearn
+---
+
+## System Components
+
+VibeLearn has 6 core components:
+
+| Component | Description |
+|-----------|-------------|
+| **Hooks** (`src/hooks/`) | 5 TypeScript hooks — TypeScript → ESM, built to `plugin/scripts/` |
+| **Worker Service** (`src/services/worker-service.ts`) | Express API on port 37778, Bun-managed, handles analysis asynchronously |
+| **Analysis Pipeline** (`src/services/analysis/`) | 4-stage pipeline: StackDetector → StaticAnalyzer → ConceptExtractor → QuizGenerator |
+| **Upstream Sync** (`src/services/sync/`) | HMAC-signed POST to api.vibelearn.dev; OfflineQueue for retry |
+| **Database** (`src/services/sqlite/`) | SQLite3 at `~/.vibelearn/vibelearn.db` |
+| **CLI** (`src/cli/vl/`) | `vl quiz`, `vl status`, `vl gaps`, `vl login` |
+
+## Data Flow
+
+```
+Claude Code Session
+        │
+        │  Hook events (SessionStart, PostToolUse, Stop...)
+        ▼
+┌───────────────────────┐
+│   Hook Layer          │
+│  - Strip <private>    │
+│  - Fire-and-forget    │
+│    HTTP to worker     │
+└────────┬──────────────┘
+         │ HTTP :37778
+         ▼
+┌───────────────────────┐
+│   Worker Service      │
+│   (Bun + Express)     │
+│                       │
+│  /api/sessions/init   │
+│  /api/sessions/obs... │
+│  /api/vibelearn/...   │
+└────────┬──────────────┘
+         │
+         ▼
+┌───────────────────────┐     ┌──────────────────────┐
+│   Analysis Pipeline   │     │   SQLite Database     │
+│                       │     │                       │
+│  1. StackDetector     │────▶│  sdk_sessions         │
+│  2. StaticAnalyzer    │     │  observations         │
+│  3. ConceptExtractor  │     │  vl_concepts          │
+│  4. QuizGenerator     │     │  vl_questions         │
+└────────┬──────────────┘     │  vl_stack_profiles    │
+         │                    │  vl_developer_profile │
+         ▼                    │  vl_quiz_attempts     │
+┌───────────────────────┐     │  vl_sync_queue        │
+│   UpstreamSync        │     └──────────────────────┘
+│   HMAC-signed POST    │
+│   → api.vibelearn.dev │
+│   OfflineQueue retry  │
+└───────────────────────┘
+```
+
+## Session Lifecycle
+
+```
+1. User starts coding in Claude Code
+        ↓
+2. SessionStart hook → worker health check → session init
+        ↓
+3. PostToolUse hooks → file edits + bash captured as observations
+        ↓
+4. Stop hook → 5-step analysis pipeline runs
+        ↓
+5. vl quiz → developer reviews quiz questions
+```
+
+## Analysis Pipeline Detail
+
+### 1. StackDetector
+
+Reads project config files: `package.json`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `build.gradle`. Detects:
+- Language + runtime
+- Framework (React, Next.js, FastAPI, Gin, etc.)
+- ORM/DB client (Prisma, SQLAlchemy, GORM, etc.)
+- Testing tools (Jest, pytest, Go test, etc.)
+
+Stores result in `vl_stack_profiles`.
+
+### 2. StaticAnalyzer
+
+AST-parses files modified during the session using tree-sitter. Identifies:
+- Custom hooks (React `use*` pattern)
+- API route definitions
+- Database query patterns
+- Authentication middleware
+- Component/class structure
+
+### 3. ConceptExtractor
+
+Single LLM call combining:
+- Stack profile from step 1
+- File patterns from step 2
+- Last assistant message from the transcript
+- Session observations
+
+Output: session narrative (`vibelearn_session_summaries`) + concept list (`vl_concepts`).
+
+### 4. QuizGenerator
+
+Second LLM call: one quiz question per extracted concept. Skips concepts where `mastery_score > 0.85` in `vl_developer_profile`.
+
+Question types: `multiple_choice`, `fill_in_blank`, `explain_code`.
+
+Output stored in `vl_questions`.
+
+## Directory Structure
+
+```
+src/
+├── hooks/                          # 5 lifecycle hooks
+│   ├── session-start.ts
+│   ├── user-prompt-submit.ts
+│   ├── post-tool-use.ts
+│   ├── summarize.ts                # Stop hook — triggers pipeline
+│   └── session-end.ts
+├── services/
+│   ├── worker-service.ts           # Express app entry
+│   ├── analysis/
+│   │   ├── StackDetector.ts
+│   │   ├── StaticAnalyzer.ts
+│   │   ├── ConceptExtractor.ts
+│   │   └── QuizGenerator.ts
+│   ├── sync/
+│   │   ├── UpstreamSync.ts
+│   │   └── OfflineQueue.ts
+│   ├── sqlite/
+│   │   ├── DatabaseManager.ts
+│   │   └── migrations.ts
+│   └── worker/http/routes/
+│       ├── VibeLearnRoutes.ts      # 8 analysis + sync endpoints
+│       ├── SessionRoutes.ts
+│       └── ...
+├── cli/vl/
+│   └── index.ts                    # vl CLI
+└── utils/
+    └── tag-stripping.ts            # <private> tag removal
+```

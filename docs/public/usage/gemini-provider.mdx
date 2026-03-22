@@ -1,0 +1,68 @@
+---
+title: Gemini Provider
+description: Use Google's Gemini API for concept extraction and quiz generation — free tier available
+---
+
+## Overview
+
+Gemini is the recommended AI provider for VibeLearn. The free tier provides **1500 requests/day** — more than enough for daily coding sessions.
+
+VibeLearn uses Gemini for two LLM calls per session:
+1. **Concept extraction** — identifies what you learned
+2. **Quiz generation** — creates questions per concept
+
+## Setup
+
+### 1. Get an API Key
+
+Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey) and create a free API key.
+
+### 2. Add to Settings
+
+```json title="~/.vibelearn/settings.json"
+{
+  "VIBELEARN_GEMINI_API_KEY": "AIza..."
+}
+```
+
+That's it. VibeLearn checks for Gemini first in the provider priority order.
+
+## Available Models
+
+| Model | Speed | Quality | Notes |
+|-------|-------|---------|-------|
+| `gemini-2.5-flash-lite` | Fast | Good | **Default** — best for daily use |
+| `gemini-2.5-flash` | Medium | Better | More thorough concept extraction |
+| `gemini-2.0-flash-exp` | Fast | Good | Experimental, may change |
+
+Override the default:
+```json
+{
+  "VIBELEARN_GEMINI_API_KEY": "AIza...",
+  "VIBELEARN_GEMINI_MODEL": "gemini-2.5-flash"
+}
+```
+
+## Rate Limiting
+
+The free tier limit is 1500 requests/day. VibeLearn uses 2 requests per session (concept extraction + quiz generation), so you can analyze up to **750 sessions/day** on the free tier.
+
+Rate limiting is enabled by default:
+```json
+{
+  "VIBELEARN_GEMINI_RATE_LIMITING_ENABLED": true
+}
+```
+
+If you hit the limit, VibeLearn falls back to OpenRouter (if configured) or Anthropic API.
+
+## Troubleshooting
+
+**`API key not valid`** — Check the key is correctly copied from AI Studio. Keys start with `AIza`.
+
+**`RESOURCE_EXHAUSTED`** — Hit the daily quota. Resets at midnight Pacific time. Switch to OpenRouter as a fallback.
+
+**No quiz questions after session** — Check worker logs:
+```bash
+tail -f ~/.vibelearn/logs/vibelearn-$(date +%Y-%m-%d).log | grep -i gemini
+```
