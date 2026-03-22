@@ -32,7 +32,7 @@ export interface VibelearnConcept {
   session_id: string;
   concept_name: string;
   category: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty: 'junior' | 'mid' | 'senior';
   source_file: string;
   snippet: string;
   why_it_matters: string;
@@ -128,10 +128,10 @@ function parseExtractionResponse(
     const block = m[1];
     const name = block.match(/<name>([\s\S]*?)<\/name>/)?.[1]?.trim() ?? 'Unknown concept';
     const category = normalizeCategory(block.match(/<category>([\s\S]*?)<\/category>/)?.[1]);
-    const difficultyRaw = block.match(/<difficulty>([\s\S]*?)<\/difficulty>/)?.[1]?.trim() ?? 'intermediate';
-    const difficulty = ['beginner', 'intermediate', 'advanced'].includes(difficultyRaw)
-      ? (difficultyRaw as 'beginner' | 'intermediate' | 'advanced')
-      : 'intermediate';
+    const difficultyRaw = block.match(/<difficulty>([\s\S]*?)<\/difficulty>/)?.[1]?.trim() ?? 'mid';
+    const difficulty = ['junior', 'mid', 'senior'].includes(difficultyRaw)
+      ? (difficultyRaw as 'junior' | 'mid' | 'senior')
+      : 'mid';
     const sourceFile = block.match(/<source_file>([\s\S]*?)<\/source_file>/)?.[1]?.trim() ?? '';
     const snippet = block.match(/<snippet>([\s\S]*?)<\/snippet>/)?.[1]?.trim() ?? '';
     const whyItMatters = block.match(/<why_it_matters>([\s\S]*?)<\/why_it_matters>/)?.[1]?.trim() ?? '';

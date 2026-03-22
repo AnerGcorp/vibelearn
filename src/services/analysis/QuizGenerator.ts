@@ -48,7 +48,7 @@ Respond ONLY with this XML (no other text):
   <question>
     <concept_index>1</concept_index>
     <type>multiple_choice OR fill_in_blank OR explain_code</type>
-    <difficulty>beginner OR intermediate OR advanced</difficulty>
+    <difficulty>junior OR mid OR senior</difficulty>
     <snippet>2-4 lines of code (can be same as concept snippet or a variation)</snippet>
     <question>The question text</question>
     <options>["Option A", "Option B", "Option C", "Option D"]</options><!-- Only for multiple_choice -->

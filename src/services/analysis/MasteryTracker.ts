@@ -44,9 +44,9 @@ export function calculateMasteryScore(correctAnswers: number, incorrectAnswers: 
  * Map a mastery score to a human-readable level.
  */
 export function levelFromScore(score: number): string {
-  if (score >= 0.85) return 'advanced';
-  if (score >= 0.5) return 'intermediate';
-  return 'beginner';
+  if (score >= 0.85) return 'senior';
+  if (score >= 0.5) return 'mid';
+  return 'junior';
 }
 
 /**

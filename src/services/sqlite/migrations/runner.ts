@@ -35,6 +35,7 @@ export class MigrationRunner {
     this.addObservationContentHashColumn();
     this.addSessionCustomTitleColumn();
     this.createVibeLearnTables();
+    this.alignDifficultyLevels();
   }
 
   /**
@@ -995,6 +996,39 @@ export class MigrationRunner {
     this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(24, new Date().toISOString());
 
     logger.debug('DB', 'VibeLearn analysis tables created (migration 24)');
+  }
+
+  /**
+   * Align difficulty level names to the validated POC taxonomy (migration 25)
+   *
+   * Renames legacy difficulty values in vl_concepts, vl_questions, and
+   * vl_developer_profile to the new three-tier taxonomy:
+   *   beginner → junior, intermediate → mid, advanced → senior
+   */
+  private alignDifficultyLevels(): void {
+    const applied = this.db.prepare('SELECT version FROM schema_versions WHERE version = ?').get(25) as SchemaVersion | undefined;
+    if (applied) return;
+
+    logger.debug('DB', 'Aligning difficulty level names to POC taxonomy (migration 25)');
+
+    // vl_concepts
+    this.db.run("UPDATE vl_concepts SET difficulty = 'junior' WHERE difficulty = 'beginner'");
+    this.db.run("UPDATE vl_concepts SET difficulty = 'mid' WHERE difficulty = 'intermediate'");
+    this.db.run("UPDATE vl_concepts SET difficulty = 'senior' WHERE difficulty = 'advanced'");
+
+    // vl_questions
+    this.db.run("UPDATE vl_questions SET difficulty = 'junior' WHERE difficulty = 'beginner'");
+    this.db.run("UPDATE vl_questions SET difficulty = 'mid' WHERE difficulty = 'intermediate'");
+    this.db.run("UPDATE vl_questions SET difficulty = 'senior' WHERE difficulty = 'advanced'");
+
+    // vl_developer_profile
+    this.db.run("UPDATE vl_developer_profile SET current_level = 'junior' WHERE current_level = 'beginner'");
+    this.db.run("UPDATE vl_developer_profile SET current_level = 'mid' WHERE current_level = 'intermediate'");
+    this.db.run("UPDATE vl_developer_profile SET current_level = 'senior' WHERE current_level = 'advanced'");
+
+    this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(25, new Date().toISOString());
+
+    logger.debug('DB', 'Difficulty level alignment complete (migration 25)');
   }
 
   /**

@@ -42,20 +42,20 @@ describe('calculateMasteryScore', () => {
 // ─── levelFromScore ───────────────────────────────────────────────────────────
 
 describe('levelFromScore', () => {
-  it('returns beginner for score below 0.5', () => {
-    expect(levelFromScore(0)).toBe('beginner');
-    expect(levelFromScore(0.49)).toBe('beginner');
+  it('returns junior for score below 0.5', () => {
+    expect(levelFromScore(0)).toBe('junior');
+    expect(levelFromScore(0.49)).toBe('junior');
   });
 
-  it('returns intermediate for score between 0.5 and 0.84', () => {
-    expect(levelFromScore(0.5)).toBe('intermediate');
-    expect(levelFromScore(0.7)).toBe('intermediate');
-    expect(levelFromScore(0.84)).toBe('intermediate');
+  it('returns mid for score between 0.5 and 0.84', () => {
+    expect(levelFromScore(0.5)).toBe('mid');
+    expect(levelFromScore(0.7)).toBe('mid');
+    expect(levelFromScore(0.84)).toBe('mid');
   });
 
-  it('returns advanced for score 0.85 and above', () => {
-    expect(levelFromScore(0.85)).toBe('advanced');
-    expect(levelFromScore(1.0)).toBe('advanced');
+  it('returns senior for score 0.85 and above', () => {
+    expect(levelFromScore(0.85)).toBe('senior');
+    expect(levelFromScore(1.0)).toBe('senior');
   });
 });
 
@@ -86,7 +86,7 @@ describe('updateMasteryAfterAttempt', () => {
     expect(result.encounter_count).toBe(1);
     expect(result.mastery_score).toBe(1);
     expect(result.streak_count).toBe(1);
-    expect(result.current_level).toBe('advanced');
+    expect(result.current_level).toBe('senior');
   });
 
   it('creates a new profile row on first incorrect attempt', () => {
@@ -100,7 +100,7 @@ describe('updateMasteryAfterAttempt', () => {
     expect(result.incorrect_answers).toBe(1);
     expect(result.mastery_score).toBe(0);
     expect(result.streak_count).toBe(0);
-    expect(result.current_level).toBe('beginner');
+    expect(result.current_level).toBe('junior');
   });
 
   it('persists the profile row to the database', () => {
@@ -163,23 +163,23 @@ describe('updateMasteryAfterAttempt', () => {
   });
 
   it('transitions level as mastery improves', () => {
-    // 3 incorrect → beginner
+    // 3 incorrect → junior
     for (let i = 0; i < 3; i++) {
       updateMasteryAfterAttempt(db, { conceptName: 'Async/Await', category: 'nodejs', isCorrect: false });
     }
     let row = db.query<{ current_level: string }, [string]>(
       `SELECT current_level FROM vl_developer_profile WHERE concept_name = ?`
     ).get('Async/Await');
-    expect(row!.current_level).toBe('beginner');
+    expect(row!.current_level).toBe('junior');
 
-    // Enough correct to reach intermediate (4 correct, 3 wrong = 0.57)
+    // Enough correct to reach mid (4 correct, 3 wrong = 0.57)
     for (let i = 0; i < 4; i++) {
       updateMasteryAfterAttempt(db, { conceptName: 'Async/Await', category: 'nodejs', isCorrect: true });
     }
     row = db.query<{ current_level: string }, [string]>(
       `SELECT current_level FROM vl_developer_profile WHERE concept_name = ?`
     ).get('Async/Await');
-    expect(row!.current_level).toBe('intermediate');
+    expect(row!.current_level).toBe('mid');
   });
 
   it('handles multiple independent concepts without interference', () => {

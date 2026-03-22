@@ -12,42 +12,20 @@
 // ─── Canonical category list ──────────────────────────────────────────────────
 
 export const CONCEPT_CATEGORIES: readonly string[] = [
-  // Frontend frameworks
-  'react',
-  'vue',
-  'angular',
-  'svelte',
-  // Languages
-  'typescript',
-  'javascript',
-  'python',
-  'go',
-  'rust',
-  'java',
-  'csharp',
-  // Runtime / platform
-  'nodejs',
-  // Patterns & architecture
-  'design-pattern',
-  'algorithms',
-  'data-structures',
-  // Data layer
-  'database',
-  'state-management',
-  // APIs & networking
-  'api',
-  'networking',
-  // Infrastructure
-  'docker',
-  'devops',
-  // Cross-cutting concerns
-  'auth',
-  'security',
-  'performance',
+  'async_pattern',
+  'error_handling',
+  'design_pattern',
+  'architecture_pattern',
+  'oop_pattern',
+  'functional_pattern',
+  'concurrency',
+  'database_pattern',
+  'api_design',
   'testing',
-  // Tooling
-  'css',
-  'git',
+  'security',
+  'state_management',
+  'type_system',
+  'react_pattern',
   // Catch-all
   'general',
 ] as const;
@@ -59,32 +37,71 @@ export const CONCEPT_CATEGORIES: readonly string[] = [
  * Keys should be lowercase.
  */
 const ALIASES: Record<string, string> = {
-  // nodejs aliases
-  'node': 'nodejs',
-  'node.js': 'nodejs',
-  // typescript aliases
-  'ts': 'typescript',
-  // javascript aliases
-  'js': 'javascript',
-  // design-pattern aliases
-  'pattern': 'design-pattern',
-  'patterns': 'design-pattern',
-  'design_pattern': 'design-pattern',
-  // docker / container aliases
-  'kubernetes': 'docker',
-  'k8s': 'docker',
-  'containerization': 'docker',
-  'containers': 'docker',
-  // devops / CI-CD aliases
-  'ci': 'devops',
-  'cd': 'devops',
-  'ci-cd': 'devops',
-  'ci/cd': 'devops',
-  'cicd': 'devops',
-  // c# aliases
-  'c#': 'csharp',
-  'dotnet': 'csharp',
-  '.net': 'csharp',
+  // Frontend framework aliases
+  'react': 'react_pattern',
+  'css': 'react_pattern',
+  'vue': 'react_pattern',
+  'angular': 'react_pattern',
+  'svelte': 'react_pattern',
+  'hooks': 'react_pattern',
+  // Type system aliases
+  'typescript': 'type_system',
+  'ts': 'type_system',
+  // Architecture / platform aliases
+  'nodejs': 'architecture_pattern',
+  'node': 'architecture_pattern',
+  'node.js': 'architecture_pattern',
+  'js': 'architecture_pattern',
+  'javascript': 'architecture_pattern',
+  'performance': 'architecture_pattern',
+  'docker': 'architecture_pattern',
+  'devops': 'architecture_pattern',
+  'ci': 'architecture_pattern',
+  'ci-cd': 'architecture_pattern',
+  'ci/cd': 'architecture_pattern',
+  'kubernetes': 'architecture_pattern',
+  'k8s': 'architecture_pattern',
+  'containerization': 'architecture_pattern',
+  'python': 'architecture_pattern',
+  'rust': 'architecture_pattern',
+  'csharp': 'architecture_pattern',
+  'c#': 'architecture_pattern',
+  // Design / algorithm pattern aliases
+  'pattern': 'design_pattern',
+  'patterns': 'design_pattern',
+  'design-pattern': 'design_pattern',
+  'algorithms': 'design_pattern',
+  'algorithm': 'design_pattern',
+  'data-structures': 'design_pattern',
+  'data_structures': 'design_pattern',
+  // Database aliases
+  'database': 'database_pattern',
+  'db': 'database_pattern',
+  // Security aliases
+  'auth': 'security',
+  'authentication': 'security',
+  // API aliases
+  'api': 'api_design',
+  'rest': 'api_design',
+  'graphql': 'api_design',
+  'networking': 'api_design',
+  // State management aliases
+  'redux': 'state_management',
+  // Async aliases
+  'async': 'async_pattern',
+  'async_await': 'async_pattern',
+  'async-await': 'async_pattern',
+  // Concurrency aliases
+  'concurrent': 'concurrency',
+  'thread': 'concurrency',
+  'parallel': 'concurrency',
+  'go': 'concurrency',
+  // OOP aliases
+  'oop': 'oop_pattern',
+  'class': 'oop_pattern',
+  // Functional aliases
+  'functional': 'functional_pattern',
+  'fp': 'functional_pattern',
 };
 
 // ─── Normalizer ───────────────────────────────────────────────────────────────
