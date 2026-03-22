@@ -30,6 +30,7 @@ import type { StackProfile } from '../../../analysis/StackDetector.js';
 import type { CodePattern } from '../../../analysis/StaticAnalyzer.js';
 import type { VibelearnConcept } from '../../../analysis/ConceptExtractor.js';
 import type { VibelearnQuestion } from '../../../analysis/QuizGenerator.js';
+import { hasEnoughObservationsForAnalysis, MIN_OBSERVATIONS_FOR_ANALYSIS } from '../../../analysis/ObservationThreshold.js';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models';
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -281,6 +282,18 @@ export class VibeLearnRoutes extends BaseRouteHandler {
     const db = this.dbManager.getSessionStore().db;
     const session = getSessionByContentId(db, contentSessionId);
     if (!session) return this.notFound(res, 'Session not found');
+
+    // Guard: skip analysis when the session has too few write observations.
+    // Read-only sessions (browsing files, running commands) don't produce
+    // enough signal for meaningful concept extraction.
+    if (session.memory_session_id && !hasEnoughObservationsForAnalysis(db, session.memory_session_id)) {
+      logger.info('VL', 'Skipping concept extraction — insufficient write observations', {
+        sessionId: contentSessionId,
+        required: MIN_OBSERVATIONS_FOR_ANALYSIS,
+      });
+      res.json({ status: 'skipped', reason: 'insufficient_observations' });
+      return;
+    }
 
     // Get stack profile (stored by analyze/stack step)
     const stackProfile: StackProfile = db.query<StackProfile, [string]>(`
