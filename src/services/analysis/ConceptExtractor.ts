@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 import { logger } from '../../utils/logger.js';
 import type { CodePattern } from './StaticAnalyzer.js';
 import type { StackProfile } from './StackDetector.js';
+import { CONCEPT_CATEGORIES_PROMPT_STRING, normalizeCategory } from './ConceptCategories.js';
 
 export interface VibelearnSessionSummary {
   session_id: string;
@@ -88,7 +89,7 @@ Respond ONLY with this XML structure (no other text):
   <concepts>
     <concept>
       <name>Exact concept name (e.g., "React Server Components", "Singleton Pattern", "JWT Refresh Tokens")</name>
-      <category>One of: design-pattern, react, typescript, nodejs, database, auth, testing, api, state-management, performance, security, algorithms</category>
+      <category>One of: ${CONCEPT_CATEGORIES_PROMPT_STRING}</category>
       <difficulty>One of: beginner, intermediate, advanced</difficulty>
       <source_file>The primary file where this concept appears (relative path)</source_file>
       <snippet>2-4 lines of the most illustrative code</snippet>
@@ -126,7 +127,7 @@ function parseExtractionResponse(
   const concepts: VibelearnConcept[] = conceptMatches.map(m => {
     const block = m[1];
     const name = block.match(/<name>([\s\S]*?)<\/name>/)?.[1]?.trim() ?? 'Unknown concept';
-    const category = block.match(/<category>([\s\S]*?)<\/category>/)?.[1]?.trim() ?? 'general';
+    const category = normalizeCategory(block.match(/<category>([\s\S]*?)<\/category>/)?.[1]);
     const difficultyRaw = block.match(/<difficulty>([\s\S]*?)<\/difficulty>/)?.[1]?.trim() ?? 'intermediate';
     const difficulty = ['beginner', 'intermediate', 'advanced'].includes(difficultyRaw)
       ? (difficultyRaw as 'beginner' | 'intermediate' | 'advanced')
