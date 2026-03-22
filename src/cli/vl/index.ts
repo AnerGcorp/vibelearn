@@ -19,6 +19,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { updateMasteryAfterAttempt, updateDailyStreak } from '../../services/analysis/MasteryTracker.js';
+import { scheduleNextReview, applySchedule, getQuestionsDueNow } from '../../services/analysis/SM2Scheduler.js';
 
 const DATA_DIR = process.env.VIBELEARN_DATA_DIR
   ? process.env.VIBELEARN_DATA_DIR.replace('~', homedir())
@@ -145,17 +146,10 @@ async function cmdQuiz(sessionOnly: boolean): Promise<void> {
   const db = openDb();
   if (!db) return;
 
-  let query = `
-    SELECT q.id, q.session_id, q.question_type, q.difficulty,
-           q.question, q.options_json, q.correct, q.explanation, q.snippet,
-           c.concept_name
-    FROM vl_questions q
-    LEFT JOIN vl_concepts c ON q.concept_id = c.id
-    WHERE q.id NOT IN (SELECT DISTINCT question_id FROM vl_quiz_attempts)
-  `;
+  const nowEpoch = Math.floor(Date.now() / 1000);
 
+  let sessionId: string | undefined;
   if (sessionOnly) {
-    // Get the most recent session
     const lastSession = db.query<{ session_id: string }, []>(`
       SELECT session_id FROM vibelearn_session_summaries
       ORDER BY generated_at DESC LIMIT 1
@@ -166,23 +160,11 @@ async function cmdQuiz(sessionOnly: boolean): Promise<void> {
       db.close();
       return;
     }
-    query += ` AND q.session_id = '${lastSession.session_id}'`;
+    sessionId = lastSession.session_id;
   }
 
-  query += ` ORDER BY q.created_at DESC LIMIT 20`;
-
-  const questions = db.query<{
-    id: string;
-    session_id: string;
-    question_type: string;
-    difficulty: string;
-    question: string;
-    options_json: string | null;
-    correct: string;
-    explanation: string;
-    snippet: string;
-    concept_name: string | null;
-  }, []>(query).all();
+  // Use SM2 filter: show questions due now (never reviewed or past their next_review_at)
+  const questions = getQuestionsDueNow(db, nowEpoch, sessionId, 20);
 
   db.close();
 
@@ -266,9 +248,18 @@ async function cmdQuiz(sessionOnly: boolean): Promise<void> {
         VALUES (?, ?, ?, ?, ?, ?)
       `, [randomUUID(), q.id, userAnswer, isCorrect ? 1 : 0, timeTaken, Math.floor(Date.now() / 1000)]);
 
+      // Update spaced-repetition schedule for this question
+      const schedule = scheduleNextReview({
+        isCorrect,
+        currentEaseFactor: q.ease_factor ?? 2.5,
+        currentIntervalDays: q.interval_days ?? 0,
+        currentRepetitions: q.repetitions ?? 0,
+        nowEpoch: Math.floor(Date.now() / 1000),
+      });
+      applySchedule(writeDb, q.id, schedule);
+
       // Update per-concept mastery score in vl_developer_profile
       if (q.concept_name) {
-        // Resolve the concept's category from vl_concepts
         const conceptRow = writeDb.query<{ category: string }, [string]>(
           `SELECT category FROM vl_concepts WHERE concept_name = ? LIMIT 1`
         ).get(q.concept_name);
