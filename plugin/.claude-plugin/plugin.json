@@ -1,7 +1,7 @@
 {
   "name": "vibelearn",
   "version": "0.1.0",
-  "description": "Developer learning tool — analyze coding sessions, extract concepts, generate quiz questions",
+  "description": "Learn from every coding session — automatically extracts concepts from your Claude Code sessions, generates adaptive quiz questions across 7 formats, and tracks mastery with spaced repetition.",
   "author": {
     "name": "Ahun Atajanov"
   },
@@ -11,7 +11,13 @@
     "learning",
     "quiz",
     "spaced-repetition",
+    "adaptive",
+    "concept-extraction",
+    "code-analysis",
+    "mastery",
     "hooks",
-    "analysis"
+    "education",
+    "claude",
+    "mcp"
   ]
 }
