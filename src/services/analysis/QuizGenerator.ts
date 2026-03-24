@@ -13,13 +13,11 @@
  */
 
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { logger } from '../../utils/logger.js';
+import { getPackageRoot } from '../../shared/paths.js';
 import type { VibelearnConcept } from './ConceptExtractor.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ─── Question type union ──────────────────────────────────────────────────────
 
@@ -105,7 +103,7 @@ let _taxonomy: ConceptTaxonomy | null = null;
 function loadTaxonomy(): ConceptTaxonomy {
   if (_taxonomy) return _taxonomy;
   try {
-    const taxonomyPath = join(__dirname, '../../data/concept_taxonomy.json');
+    const taxonomyPath = join(getPackageRoot(), 'concept_taxonomy.json');
     _taxonomy = JSON.parse(readFileSync(taxonomyPath, 'utf-8')) as ConceptTaxonomy;
   } catch {
     _taxonomy = { concepts: [] };

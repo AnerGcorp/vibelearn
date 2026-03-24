@@ -22,11 +22,9 @@
  */
 
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import { logger } from '../../utils/logger.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { getPackageRoot } from '../../shared/paths.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,7 +58,7 @@ let _rubric: SeniorRubricJson | null = null;
 function loadRubric(): SeniorRubricJson {
   if (_rubric) return _rubric;
   try {
-    const rubricPath = join(__dirname, '../../data/senior_rubric.json');
+    const rubricPath = join(getPackageRoot(), 'senior_rubric.json');
     _rubric = JSON.parse(readFileSync(rubricPath, 'utf-8')) as SeniorRubricJson;
   } catch {
     // Minimal fallback if file is missing
