@@ -2,7 +2,7 @@
   "name": "anergcorp",
   "owner": {
     "name": "Ahun Atajanov",
-    "email": "aatajanov@pragmaticdevs.io "
+    "email": "aatajanov@pragmaticdevs.io"
   },
   "metadata": {
     "description": "Plugins by Ahun Atajanov (anergcorp)",
@@ -13,7 +13,12 @@
       "name": "vibelearn",
       "version": "0.1.0",
       "source": "./plugin",
-      "description": "Persistent memory system for Claude Code - context compression across sessions"
+      "description": "Learn from every coding session — automatically extracts concepts, generates adaptive quiz questions across 7 formats, and tracks mastery with spaced repetition.",
+      "author": { "name": "Ahun Atajanov" },
+      "homepage": "https://vibelearn.dev",
+      "repository": "https://github.com/anergcorp/vibelearn",
+      "license": "AGPL-3.0",
+      "keywords": ["learning", "quiz", "spaced-repetition", "adaptive", "concept-extraction", "mastery", "hooks", "education"]
     }
   ]
 }
