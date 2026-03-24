@@ -24,6 +24,7 @@ import {
   applyAdaptiveUpdate,
   shouldInsertFollowUp,
   makeFollowUpQuestion,
+  type QuizQueueItem,
 } from '../../services/analysis/AdaptiveEngine.js';
 
 const DATA_DIR = process.env.VIBELEARN_DATA_DIR
@@ -189,7 +190,7 @@ async function cmdQuiz(sessionOnly: boolean): Promise<void> {
   let total = 0;
 
   // Mutable queue — adaptive engine may insert follow-up questions
-  const queue = [...questions];
+  const queue: QuizQueueItem[] = [...questions as QuizQueueItem[]];
   // Track IDs already in queue to prevent duplicate follow-ups
   const queueIds = new Set(queue.map(q => q.id));
 
