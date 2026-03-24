@@ -46,7 +46,7 @@ Every time you end a Claude Code session, VibeLearn automatically:
 1. **Detects your tech stack** — reads `package.json`, `pyproject.toml`, `go.mod`, etc.
 2. **Analyzes your code changes** — identifies patterns: custom hooks, API routes, TypeScript types, design patterns
 3. **Extracts learning concepts** — a single LLM call produces a session summary and a list of concepts you encountered
-4. **Generates quiz questions** — a second LLM call creates targeted `multiple_choice`, `fill_in_blank`, and `explain_code` questions per concept
+4. **Generates quiz questions** — a second LLM call creates targeted questions per concept across 7 formats: `multiple_choice`, `code_reading`, `spot_the_bug`, `fill_in_blank`, `open_ended`, `true_false`, and `ordering` — selected based on concept difficulty (junior / mid / senior)
 5. **Syncs to vibelearn.dev** — your learning profile is stored securely (optional, requires `vl login`)
 
 Then run `vl quiz` to review what you learned.
@@ -118,6 +118,15 @@ Q1/3 (intermediate) [React Server Actions]
   Explanation: 'use server' creates a Server Action — a function that
   runs exclusively on the server. The client receives only the result.
 ```
+
+### Adaptive Difficulty
+
+VibeLearn tracks your mastery per concept and adjusts difficulty automatically:
+
+- **3 correct in a row** → promoted to the next level (junior → mid → senior)
+- **1 wrong answer** → dropped back a level
+- **Follow-up questions** are inserted mid-quiz when you nail a junior question, to probe deeper understanding
+- **Open-ended answers** at senior level are evaluated by a 5-dimension rubric (accuracy, depth, trade-offs, practical reasoning, completeness)
 
 ---
 

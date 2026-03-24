@@ -22,7 +22,7 @@ Every time a session ends, VibeLearn automatically runs a 5-step analysis pipeli
     A single LLM call produces a session narrative and a list of concepts you encountered (e.g., "React Server Actions", "SQLite WAL mode", "HMAC signing").
   </Step>
   <Step title="Quiz Generation">
-    A second LLM call generates targeted quiz questions per concept — `multiple_choice`, `fill_in_blank`, and `explain_code` formats.
+    A second LLM call generates targeted quiz questions per concept across 7 formats: `multiple_choice`, `code_reading`, `spot_the_bug`, `fill_in_blank`, `open_ended`, `true_false`, and `ordering`. Question type is selected based on concept difficulty (junior / mid / senior). Open-ended senior answers are evaluated by a 5-dimension rubric.
   </Step>
   <Step title="Sync">
     HMAC-signed sync to vibelearn.dev. Queued offline if unavailable — retried next session.
@@ -52,6 +52,15 @@ vl gaps              # Concepts not yet mastered (score < 50%)
 vl login <api-key>   # Connect to vibelearn.dev
 vl login --status    # Check current auth status
 ```
+
+## Adaptive Difficulty
+
+VibeLearn tracks mastery per concept and adapts quiz difficulty automatically:
+
+- **3 correct in a row** → promoted to the next level (junior → mid → senior)
+- **1 wrong answer** → dropped back a level
+- **Follow-up questions** are inserted mid-quiz when a junior question is answered correctly, to probe deeper understanding
+- **Senior open-ended answers** are evaluated by a 5-dimension rubric: accuracy, depth, trade-offs, practical reasoning, and completeness
 
 ## Privacy
 
