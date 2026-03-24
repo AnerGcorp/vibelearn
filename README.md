@@ -27,7 +27,7 @@
 <p align="center">
   <a href="#quick-start">Quick Start</a> •
   <a href="#how-it-works">How It Works</a> •
-  <a href="#vl-cli">vl CLI</a> •
+  <a href="#vl-cli">VL CLI</a> •
   <a href="#configuration">Configuration</a> •
   <a href="#privacy">Privacy</a> •
   <a href="#troubleshooting">Troubleshooting</a>
