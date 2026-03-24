@@ -164,7 +164,7 @@ function buildSyncPayload(
       difficulty: q.difficulty,
       question: q.question,
       options: q.options_json ? JSON.parse(q.options_json) : null,
-      correct: q.correct,
+      correct: q.correct ?? '',
       explanation: q.explanation,
       snippet: q.snippet.split('\n').slice(0, 5).join('\n')  // max 5 lines
     }))

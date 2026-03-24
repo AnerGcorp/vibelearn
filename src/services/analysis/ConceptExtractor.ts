@@ -101,7 +101,7 @@ function buildExtractionPrompt(
     languages: stack,
     framework: stackProfile.framework ?? null,
     orm: stackProfile.orm ?? null,
-    testing: stackProfile.testing ?? null,
+    testing: JSON.parse(stackProfile.testing_json ?? '[]'),
   };
 
   // Unique files touched this session

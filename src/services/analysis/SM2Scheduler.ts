@@ -119,6 +119,7 @@ export interface QuestionRow {
   ease_factor: number;
   interval_days: number;
   repetitions: number;
+  follow_up_mid?: string | null;
 }
 
 /**
@@ -144,7 +145,7 @@ export function getQuestionsDueNow(
   return db.query<QuestionRow, (string | number)[]>(`
     SELECT q.id, q.session_id, q.question_type, q.difficulty,
            q.question, q.options_json, q.correct, q.explanation, q.snippet,
-           q.ease_factor, q.interval_days, q.repetitions,
+           q.ease_factor, q.interval_days, q.repetitions, q.follow_up_mid,
            c.concept_name
     FROM vl_questions q
     LEFT JOIN vl_concepts c ON q.concept_id = c.id
