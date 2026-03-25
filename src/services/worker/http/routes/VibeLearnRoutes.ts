@@ -521,14 +521,12 @@ export class VibeLearnRoutes extends BaseRouteHandler {
       generated_at: summary.generated_at
     };
 
+    // Build the full payload before attempting sync so we can queue it intact on failure
+    const payloadObj = this.upstreamSync.buildPayload(vlSummary, concepts, questions, stackProfile, projectName);
+    const payloadJson = JSON.stringify(payloadObj);
+
     try {
-      await this.upstreamSync.syncSession(
-        vlSummary,
-        concepts,
-        questions,
-        stackProfile,
-        projectName
-      );
+      await this.upstreamSync.syncRawPayload(payloadJson);
 
       // Mark session as synced
       db.run(`
@@ -537,9 +535,8 @@ export class VibeLearnRoutes extends BaseRouteHandler {
 
       res.json({ status: 'ok', synced: true });
     } catch (err) {
-      // Enqueue for retry
-      const payload = JSON.stringify({ session_id: contentSessionId });
-      this.offlineQueue.enqueue('session', payload);
+      // Enqueue the full payload so the retry will send valid data to the server
+      this.offlineQueue.enqueue('session', payloadJson);
       logger.warn('VL', 'Sync failed, queued for offline retry', { sessionId: contentSessionId }, err as Error);
       res.json({ status: 'queued', reason: (err as Error).message });
     }

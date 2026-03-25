@@ -200,6 +200,26 @@ export class UpstreamSync {
   }
 
   /**
+   * Build the full sync payload (without sending it).
+   * Use this to get the payload JSON before attempting sync,
+   * so the full payload can be queued for offline retry on failure.
+   */
+  buildPayload(
+    summary: VibelearnSessionSummary,
+    concepts: VibelearnConcept[],
+    questions: VibelearnQuestion[],
+    stackProfile: StackProfile,
+    projectName: string,
+    ide: 'claude-code' | 'cursor' = 'claude-code',
+    attempts?: SyncAttempt[]
+  ): SyncPayload {
+    return buildSyncPayload(
+      summary, concepts, questions, stackProfile,
+      projectName, this.clientVersion, ide, this.apiKey, attempts
+    );
+  }
+
+  /**
    * Sync a session's analysis results to api.vibelearn.dev.
    * Throws on network error — caller should catch and add to offline queue.
    */
