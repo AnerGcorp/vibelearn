@@ -81,7 +81,7 @@ interface VibelearnConfig {
   user_id?: string;
 }
 
-const DEFAULT_API_URL = 'https://api.vibelearn.dev';
+const DEFAULT_API_URL = 'https://vibelearn.dev';
 const CONFIG_PATH = join(homedir(), '.vibelearn', 'config.json');
 
 export function loadConfig(): VibelearnConfig {
