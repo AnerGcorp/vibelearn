@@ -31,7 +31,7 @@ const _dirname = getDirname();
 function resolveDataDir(): string {
   // 1. Environment variable (highest priority) — already handled by get()
   if (process.env.VIBELEARN_DATA_DIR) {
-    return process.env.VIBELEARN_DATA_DIR;
+    return process.env.VIBELEARN_DATA_DIR.replace(/^~(?=$|\/)/, homedir());
   }
 
   // 2. Settings file at the default location

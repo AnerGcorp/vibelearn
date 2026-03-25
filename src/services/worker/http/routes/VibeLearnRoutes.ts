@@ -12,9 +12,9 @@
  *   GET  /api/vibelearn/sessions/:id/summary — session summary + concepts
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import express, { Request, Response, Application } from 'express';
-import { basename } from 'path';
+import { basename, join } from 'path';
 import { logger } from '../../../../utils/logger.js';
 import { DatabaseManager } from '../../DatabaseManager.js';
 import { SettingsDefaultsManager } from '../../../../shared/SettingsDefaultsManager.js';
@@ -90,8 +90,18 @@ function createAgentRunner(): (prompt: string) => Promise<string> {
     };
   }
 
-  // Anthropic Messages API
-  const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
+  // Anthropic Messages API — check process.env, then vibelearn .env file
+  let anthropicKey = process.env.ANTHROPIC_API_KEY || '';
+  if (!anthropicKey) {
+    try {
+      const envPath = join(SettingsDefaultsManager.get('VIBELEARN_DATA_DIR'), '.env');
+      if (existsSync(envPath)) {
+        const envContent = readFileSync(envPath, 'utf-8');
+        const match = envContent.match(/^ANTHROPIC_API_KEY=(.+)$/m);
+        if (match) anthropicKey = match[1].trim();
+      }
+    } catch { /* best effort */ }
+  }
   return async (prompt: string): Promise<string> => {
     const response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
@@ -191,12 +201,19 @@ function readFilesForAnalysis(filePaths: string[]): Array<{ file_path: string; c
 
 export class VibeLearnRoutes extends BaseRouteHandler {
   private upstreamSync: UpstreamSync;
-  private offlineQueue: OfflineQueue;
+  private _offlineQueue: OfflineQueue | null = null;
 
   constructor(private dbManager: DatabaseManager) {
     super();
     this.upstreamSync = new UpstreamSync();
-    this.offlineQueue = new OfflineQueue(dbManager.getSessionStore().db);
+    // OfflineQueue requires DB — defer until first use (DB initializes in background)
+  }
+
+  private get offlineQueue(): OfflineQueue {
+    if (!this._offlineQueue) {
+      this._offlineQueue = new OfflineQueue(this.dbManager.getSessionStore().db);
+    }
+    return this._offlineQueue;
   }
 
   setupRoutes(app: Application): void {

@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-#!/usr/bin/env bun
 "use strict";var B=Object.create;var x=Object.defineProperty;var G=Object.getOwnPropertyDescriptor;var J=Object.getOwnPropertyNames;var K=Object.getPrototypeOf,X=Object.prototype.hasOwnProperty;var Z=(e,n,t,s)=>{if(n&&typeof n=="object"||typeof n=="function")for(let r of J(n))!X.call(e,r)&&r!==t&&x(e,r,{get:()=>n[r],enumerable:!(s=G(n,r))||s.enumerable});return e};var ee=(e,n,t)=>(t=e!=null?B(K(e)):{},Z(n||!e||!e.__esModule?x(t,"default",{value:e,enumerable:!0}):t,e));var j=require("readline"),N=require("bun:sqlite"),q=require("path"),T=require("os"),m=require("fs");function I(e,n){let t=e+n;return t===0?0:e/t}function O(e){return e>=.85?"senior":e>=.5?"mid":"junior"}function M(e,n){let t=Math.floor(Date.now()/1e3),s=e.query("SELECT * FROM vl_developer_profile WHERE concept_name = ?").get(n.conceptName);if(!s){let p=n.isCorrect?1:0,a=n.isCorrect?0:1,v=I(p,a),f=n.isCorrect?1:0,S=O(v);return e.run(`INSERT INTO vl_developer_profile
         (concept_name, category, first_seen_at, last_seen_at, encounter_count,
          correct_answers, incorrect_answers, current_level, streak_count, mastery_score)
