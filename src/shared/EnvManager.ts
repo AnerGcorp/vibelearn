@@ -217,10 +217,13 @@ export function buildIsolatedEnv(includeCredentials: boolean = true): Record<str
   // 3. Re-inject managed credentials from vibelearn's .env file
   if (includeCredentials) {
     const credentials = loadVibelearnEnv();
+    const authMethod = process.env.VIBELEARN_CLAUDE_AUTH_METHOD ?? 'cli';
 
-    // Only add ANTHROPIC_API_KEY if explicitly configured in vibelearn
-    // If not configured, CLI billing will be used (via ANTHROPIC_AUTH_TOKEN passthrough)
-    if (credentials.ANTHROPIC_API_KEY) {
+    // Only inject ANTHROPIC_API_KEY when auth method is explicitly 'api'.
+    // When set to 'cli' (default), always use subscription billing even if a
+    // stale key exists in ~/.vibelearn/.env — fixes Issue #4 where an expired
+    // key in .env caused 401 errors and silently blocked concept extraction.
+    if (authMethod === 'api' && credentials.ANTHROPIC_API_KEY) {
       isolatedEnv.ANTHROPIC_API_KEY = credentials.ANTHROPIC_API_KEY;
     }
     // Note: GEMINI_API_KEY and OPENROUTER_API_KEY pass through from process.env,
