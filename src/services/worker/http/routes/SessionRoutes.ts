@@ -515,6 +515,7 @@ export class SessionRoutes extends BaseRouteHandler {
 
     // Skip meta-observations: file operations on session-memory files
     const fileOperationTools = new Set(['Edit', 'Write', 'Read', 'NotebookEdit']);
+    let observedFilePath: string | null = null;
     if (fileOperationTools.has(tool_name) && tool_input) {
       const filePath = tool_input.file_path || tool_input.notebook_path;
       if (filePath && filePath.includes('session-memory')) {
@@ -524,6 +525,10 @@ export class SessionRoutes extends BaseRouteHandler {
         });
         res.json({ status: 'skipped', reason: 'session_memory_meta' });
         return;
+      }
+      // Track absolute file path for VL analysis (only write operations, not reads)
+      if (filePath && (tool_name === 'Edit' || tool_name === 'Write' || tool_name === 'NotebookEdit')) {
+        observedFilePath = filePath;
       }
     }
 
@@ -556,6 +561,21 @@ export class SessionRoutes extends BaseRouteHandler {
       const cleanedToolResponse = tool_response !== undefined
         ? stripMemoryTagsFromJson(JSON.stringify(tool_response))
         : '{}';
+
+      // Track absolute file path for VL analysis (persists beyond pending_messages lifecycle)
+      if (observedFilePath) {
+        try {
+          const row = store.db.query<{ abs_files_json: string | null }, [string]>(
+            'SELECT abs_files_json FROM sdk_sessions WHERE content_session_id = ?'
+          ).get(contentSessionId);
+          const current: string[] = JSON.parse(row?.abs_files_json || '[]');
+          if (!current.includes(observedFilePath)) {
+            current.push(observedFilePath);
+            store.db.run('UPDATE sdk_sessions SET abs_files_json = ? WHERE content_session_id = ?',
+              [JSON.stringify(current), contentSessionId]);
+          }
+        } catch { /* non-critical */ }
+      }
 
       // Queue observation
       this.sessionManager.queueObservation(sessionDbId, {
@@ -699,6 +719,7 @@ export class SessionRoutes extends BaseRouteHandler {
     const project = req.body.project || 'unknown';
     const prompt = req.body.prompt || '[media prompt]';
     const customTitle = req.body.customTitle || undefined;
+    const sessionCwd: string = req.body.cwd || '';
 
     logger.info('HTTP', 'SessionRoutes: handleSessionInitByClaudeId called', {
       contentSessionId,
@@ -716,6 +737,12 @@ export class SessionRoutes extends BaseRouteHandler {
 
     // Step 1: Create/get SDK session (idempotent INSERT OR IGNORE)
     const sessionDbId = store.createSDKSession(contentSessionId, project, prompt, customTitle);
+
+    // Store absolute CWD for analysis pipeline (VibeLearn uses this to resolve file paths)
+    if (sessionCwd) {
+      store.db.run('UPDATE sdk_sessions SET cwd = ? WHERE content_session_id = ? AND cwd IS NULL',
+        [sessionCwd, contentSessionId]);
+    }
 
     // Verify session creation with DB lookup
     const dbSession = store.getSessionById(sessionDbId);

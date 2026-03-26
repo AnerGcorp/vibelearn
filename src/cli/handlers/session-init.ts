@@ -52,6 +52,7 @@ export const sessionInitHandler: EventHandler = {
       body: JSON.stringify({
         contentSessionId: sessionId,
         project,
+        cwd: cwd || '',
         prompt
       })
     });

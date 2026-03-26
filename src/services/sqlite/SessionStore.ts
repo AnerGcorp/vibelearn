@@ -51,6 +51,7 @@ export class SessionStore {
     this.addOnUpdateCascadeToForeignKeys();
     this.addObservationContentHashColumn();
     this.addSessionCustomTitleColumn();
+    this.addSessionCwdAndFilesColumns();
   }
 
   /**
@@ -873,6 +874,26 @@ export class SessionStore {
     }
 
     this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(23, new Date().toISOString());
+  }
+
+  private addSessionCwdAndFilesColumns(): void {
+    const applied = this.db.prepare('SELECT version FROM schema_versions WHERE version = ?').get(24) as SchemaVersion | undefined;
+    if (applied) return;
+
+    const tableInfo = this.db.query('PRAGMA table_info(sdk_sessions)').all() as TableColumnInfo[];
+    const hasCwd = tableInfo.some(col => col.name === 'cwd');
+    const hasAbsFiles = tableInfo.some(col => col.name === 'abs_files_json');
+
+    if (!hasCwd) {
+      this.db.run('ALTER TABLE sdk_sessions ADD COLUMN cwd TEXT');
+      logger.debug('DB', 'Added cwd column to sdk_sessions table');
+    }
+    if (!hasAbsFiles) {
+      this.db.run("ALTER TABLE sdk_sessions ADD COLUMN abs_files_json TEXT DEFAULT '[]'");
+      logger.debug('DB', 'Added abs_files_json column to sdk_sessions table');
+    }
+
+    this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(24, new Date().toISOString());
   }
 
   /**

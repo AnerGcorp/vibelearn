@@ -19,16 +19,18 @@ import type { Database } from 'bun:sqlite';
 export const MIN_OBSERVATIONS_FOR_ANALYSIS = 2;
 
 /**
- * Count file_write and file_edit observations for the given memory session.
- * Only these types indicate that the developer actively changed code.
+ * Count write-type observations for the given memory session.
+ * Uses the actual types the SDK memory agent stores (from plugin/modes/code.json):
+ *   bugfix, feature, refactor, change — developer actively changed code
+ *   discovery, decision — read-only / thinking, excluded
  */
 export function countWriteObservations(db: Database, memorySessionId: string): number {
-  const row = db.query<{ count: number }, [string, string, string]>(`
+  const row = db.query<{ count: number }, [string, string, string, string, string]>(`
     SELECT COUNT(*) as count
     FROM observations
     WHERE memory_session_id = ?
-      AND type IN (?, ?)
-  `).get(memorySessionId, 'file_write', 'file_edit');
+      AND type IN (?, ?, ?, ?)
+  `).get(memorySessionId, 'bugfix', 'feature', 'refactor', 'change');
 
   return row?.count ?? 0;
 }

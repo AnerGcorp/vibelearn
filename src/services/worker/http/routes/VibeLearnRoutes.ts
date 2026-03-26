@@ -90,7 +90,11 @@ function createAgentRunner(): (prompt: string) => Promise<string> {
     };
   }
 
-  // Anthropic Messages API — check process.env, then vibelearn .env file
+  // Anthropic Messages API — check in priority order:
+  // 1. ANTHROPIC_API_KEY env var
+  // 2. ~/.vibelearn/.env file (set by vl login --api-key)
+  // 3. CLAUDE_CODE_OAUTH_TOKEN — inherited from Claude Code when auth_method=cli
+  //    (the worker process inherits this from the hook that started it)
   let anthropicKey = process.env.ANTHROPIC_API_KEY || '';
   if (!anthropicKey) {
     try {
@@ -101,6 +105,9 @@ function createAgentRunner(): (prompt: string) => Promise<string> {
         if (match) anthropicKey = match[1].trim();
       }
     } catch { /* best effort */ }
+  }
+  if (!anthropicKey) {
+    anthropicKey = process.env.CLAUDE_CODE_OAUTH_TOKEN || '';
   }
   return async (prompt: string): Promise<string> => {
     const response = await fetch(ANTHROPIC_API_URL, {
@@ -133,6 +140,8 @@ function getSessionByContentId(db: ReturnType<DatabaseManager['getSessionStore']
   content_session_id: string;
   memory_session_id: string | null;
   project: string;
+  cwd: string | null;
+  abs_files_json: string | null;
   started_at_epoch: number;
 } | null {
   return db.query<{
@@ -140,9 +149,11 @@ function getSessionByContentId(db: ReturnType<DatabaseManager['getSessionStore']
     content_session_id: string;
     memory_session_id: string | null;
     project: string;
+    cwd: string | null;
+    abs_files_json: string | null;
     started_at_epoch: number;
   }, [string]>(`
-    SELECT id, content_session_id, memory_session_id, project, started_at_epoch
+    SELECT id, content_session_id, memory_session_id, project, cwd, abs_files_json, started_at_epoch
     FROM sdk_sessions
     WHERE content_session_id = ?
     LIMIT 1
@@ -150,17 +161,29 @@ function getSessionByContentId(db: ReturnType<DatabaseManager['getSessionStore']
 }
 
 /**
- * Aggregate unique file paths (files_modified + files_read) across all observations for a session.
+ * Aggregate unique file paths for a session.
+ * Prefers abs_files_json (absolute paths stored at observation time) over
+ * observations.files_modified (which only stores basenames from LLM output).
  */
 function getSessionFilePaths(
   db: ReturnType<DatabaseManager['getSessionStore']>['db'],
-  memorySessionId: string | null
+  contentSessionId: string,
+  memorySessionId: string | null,
+  absFilesJson: string | null
 ): string[] {
-  if (!memorySessionId) return [];
+  // Prefer absolute paths stored directly from tool_input.file_path
+  if (absFilesJson) {
+    try {
+      const abs = JSON.parse(absFilesJson) as string[];
+      if (abs.length > 0) return abs;
+    } catch { /* fall through */ }
+  }
 
+  // Fallback: use filenames from observations (may be basenames only)
+  if (!memorySessionId) return [];
   try {
-    const rows = db.query<{ files_modified: string | null; files_read: string | null }, [string]>(`
-      SELECT files_modified, files_read
+    const rows = db.query<{ files_modified: string | null }, [string]>(`
+      SELECT files_modified
       FROM observations
       WHERE memory_session_id = ?
     `).all(memorySessionId);
@@ -237,8 +260,8 @@ export class VibeLearnRoutes extends BaseRouteHandler {
     const session = getSessionByContentId(db, contentSessionId);
     if (!session) return this.notFound(res, 'Session not found');
 
-    const filePaths = getSessionFilePaths(db, session.memory_session_id);
-    const cwd = session.project;
+    const filePaths = getSessionFilePaths(db, contentSessionId, session.memory_session_id, session.abs_files_json);
+    const cwd = session.cwd || session.project;
 
     const stackProfile = detectStack(contentSessionId, filePaths, cwd);
 
@@ -277,7 +300,7 @@ export class VibeLearnRoutes extends BaseRouteHandler {
     const session = getSessionByContentId(db, contentSessionId);
     if (!session) return this.notFound(res, 'Session not found');
 
-    const filePaths = getSessionFilePaths(db, session.memory_session_id);
+    const filePaths = getSessionFilePaths(db, contentSessionId, session.memory_session_id, session.abs_files_json);
     const files = readFilesForAnalysis(filePaths);
     const patterns = analyzeFiles(files);
 
@@ -328,7 +351,7 @@ export class VibeLearnRoutes extends BaseRouteHandler {
     };
 
     // Static analysis for context
-    const filePaths = getSessionFilePaths(db, session.memory_session_id);
+    const filePaths = getSessionFilePaths(db, contentSessionId, session.memory_session_id, session.abs_files_json);
     const files = readFilesForAnalysis(filePaths);
     const patterns: CodePattern[] = analyzeFiles(files);
 
