@@ -11,14 +11,25 @@
   "plugins": [
     {
       "name": "vibelearn",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "./plugin",
       "description": "Learn from every coding session — automatically extracts concepts, generates adaptive quiz questions across 7 formats, and tracks mastery with spaced repetition.",
-      "author": { "name": "Ahun Atajanov" },
+      "author": {
+        "name": "Ahun Atajanov"
+      },
       "homepage": "https://vibelearn.dev",
       "repository": "https://github.com/anergcorp/vibelearn",
       "license": "AGPL-3.0",
-      "keywords": ["learning", "quiz", "spaced-repetition", "adaptive", "concept-extraction", "mastery", "hooks", "education"]
+      "keywords": [
+        "learning",
+        "quiz",
+        "spaced-repetition",
+        "adaptive",
+        "concept-extraction",
+        "mastery",
+        "hooks",
+        "education"
+      ]
     }
   ]
 }
