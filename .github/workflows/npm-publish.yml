@@ -43,23 +43,30 @@ jobs:
         if: steps.version_check.outputs.already_published == 'true'
         run: echo "⚠️ v${{ steps.version_check.outputs.version }} already on npm — skipping publish."
 
-      # Keep marketplace.json in sync with package.json version
-      # Also bumps the updatedAt timestamp so Claude Code detects the new version
-      - name: Sync marketplace.json version
+      # Sync marketplace.json and plugin.json with package.json version
+      # Bumps updatedAt so Claude Code detects the new version in the plugin store
+      - name: Sync plugin version files
         if: steps.version_check.outputs.already_published == 'false'
         run: |
           PKG_VERSION=${{ steps.version_check.outputs.version }}
           node -e "
             const fs = require('fs');
-            const path = '.claude-plugin/marketplace.json';
-            const m = JSON.parse(fs.readFileSync(path, 'utf-8'));
-            m.plugins[0].version = '$PKG_VERSION';
-            m.plugins[0].updatedAt = new Date().toISOString();
-            fs.writeFileSync(path, JSON.stringify(m, null, 2) + '\n');
-            console.log('Updated marketplace.json to v' + '$PKG_VERSION');
+
+            // Update .claude-plugin/marketplace.json
+            const mp = JSON.parse(fs.readFileSync('.claude-plugin/marketplace.json', 'utf-8'));
+            mp.plugins[0].version = '$PKG_VERSION';
+            mp.plugins[0].updatedAt = new Date().toISOString();
+            fs.writeFileSync('.claude-plugin/marketplace.json', JSON.stringify(mp, null, 2) + '\n');
+            console.log('Updated marketplace.json to v$PKG_VERSION');
+
+            // Update plugin/.claude-plugin/plugin.json — this is what Claude Code reads for installed version
+            const pj = JSON.parse(fs.readFileSync('plugin/.claude-plugin/plugin.json', 'utf-8'));
+            pj.version = '$PKG_VERSION';
+            fs.writeFileSync('plugin/.claude-plugin/plugin.json', JSON.stringify(pj, null, 2) + '\n');
+            console.log('Updated plugin/plugin.json to v$PKG_VERSION');
           "
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .claude-plugin/marketplace.json
-          git diff --cached --quiet || git commit -m "chore: sync marketplace.json to v$PKG_VERSION [skip ci]"
+          git add .claude-plugin/marketplace.json plugin/.claude-plugin/plugin.json
+          git diff --cached --quiet || git commit -m "chore: sync plugin version files to v$PKG_VERSION [skip ci]"
           git push origin HEAD:main
