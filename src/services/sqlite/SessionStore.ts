@@ -877,7 +877,8 @@ export class SessionStore {
   }
 
   private addSessionCwdAndFilesColumns(): void {
-    const applied = this.db.prepare('SELECT version FROM schema_versions WHERE version = ?').get(24) as SchemaVersion | undefined;
+    // Use version 27 — versions 24-26 were already used by other migrations
+    const applied = this.db.prepare('SELECT version FROM schema_versions WHERE version = ?').get(27) as SchemaVersion | undefined;
     if (applied) return;
 
     const tableInfo = this.db.query('PRAGMA table_info(sdk_sessions)').all() as TableColumnInfo[];
@@ -893,7 +894,7 @@ export class SessionStore {
       logger.debug('DB', 'Added abs_files_json column to sdk_sessions table');
     }
 
-    this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(24, new Date().toISOString());
+    this.db.prepare('INSERT OR IGNORE INTO schema_versions (version, applied_at) VALUES (?, ?)').run(27, new Date().toISOString());
   }
 
   /**
