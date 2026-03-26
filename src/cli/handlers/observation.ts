@@ -32,7 +32,16 @@ function enrichObservation(
 ): Record<string, unknown> {
   const input = (toolInput ?? {}) as Record<string, unknown>;
 
-  const base = { contentSessionId: sessionId, tool_name: toolName, cwd };
+  // Always include raw tool_input/tool_response — the worker passes these
+  // directly to the SDK agent. Without them the agent sees empty objects and
+  // produces no observations (the enriched custom fields are silently ignored).
+  const base = {
+    contentSessionId: sessionId,
+    tool_name: toolName,
+    cwd,
+    tool_input: toolInput,
+    tool_response: toolResponse,
+  };
 
   // Write / Edit — capture file path + content (truncated)
   if (toolName === 'Write' || toolName === 'Edit' || toolName === 'NotebookEdit') {
@@ -64,7 +73,6 @@ function enrichObservation(
     const isInstall = PACKAGE_INSTALL_RE.test(command.trim());
 
     if (isInstall) {
-      // Extract package names from the install command (everything after the sub-command)
       const packageNames = command.trim().split(/\s+/).slice(2);
       return {
         ...base,
@@ -84,7 +92,7 @@ function enrichObservation(
     };
   }
 
-  // All other tools — lightweight record (no raw input/output blobs)
+  // All other tools — lightweight record
   return {
     ...base,
     tool_type: 'other_tool'
