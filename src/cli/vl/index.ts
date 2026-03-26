@@ -26,6 +26,9 @@ import {
   type QuizQueueItem,
 } from '../../services/analysis/AdaptiveEngine.js';
 
+declare const __DEFAULT_PACKAGE_VERSION__: string;
+const VL_VERSION = typeof __DEFAULT_PACKAGE_VERSION__ !== 'undefined' ? __DEFAULT_PACKAGE_VERSION__ : '0.0.0-dev';
+
 const DATA_DIR = process.env.VIBELEARN_DATA_DIR
   ? process.env.VIBELEARN_DATA_DIR.replace('~', homedir())
   : join(homedir(), '.vibelearn');
@@ -365,6 +368,11 @@ async function main(): Promise<void> {
   const command = args[0];
 
   switch (command) {
+    case '-v':
+    case '--version':
+      console.log(`vl ${VL_VERSION}`);
+      break;
+
     case 'quiz':
       await cmdQuiz(args.includes('--session'));
       break;
@@ -395,6 +403,7 @@ Usage:
   vl gaps              Concepts you haven't mastered yet
   vl login <api-key>   Connect to vibelearn.dev
   vl login --status    Check login status
+  vl --version         Show version
 `);
   }
 }
