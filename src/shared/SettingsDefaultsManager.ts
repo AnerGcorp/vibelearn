@@ -108,7 +108,7 @@ export class SettingsDefaultsManager {
     VIBELEARN_FOLDER_MD_EXCLUDE: '[]',
     // Upstream Sync
     VIBELEARN_API_KEY: '',
-    VIBELEARN_API_URL: 'https://api.vibelearn.dev',
+    VIBELEARN_API_URL: 'https://vibelearn.dev',
     VIBELEARN_AUTO_SYNC: 'true',
     VIBELEARN_SYNC_SNIPPETS: 'true',
   };
