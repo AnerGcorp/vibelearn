@@ -8,6 +8,8 @@
  *   vl quiz --session    Quiz only the last session's questions
  *   vl status            Sessions analyzed, concepts by category, streak
  *   vl gaps              Concepts seen but not yet mastered (mastery < 0.5)
+ *   vl sync              Re-run full analysis pipeline on the latest session
+ *   vl sync <session-id> Re-run full analysis pipeline on a specific session
  *   vl login <api-key>   Save API key to ~/.vibelearn/config.json
  *   vl login --status    Show auth status
  */
@@ -338,6 +340,77 @@ async function cmdQuiz(sessionOnly: boolean): Promise<void> {
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 }
 
+async function cmdSync(sessionId: string | null): Promise<void> {
+  const WORKER_PORT = 37778;
+  const BASE_URL = `http://localhost:${WORKER_PORT}`;
+
+  async function post(path: string, body: Record<string, unknown>): Promise<{ ok: boolean; status: number; data: unknown }> {
+    try {
+      const res = await fetch(`${BASE_URL}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(120_000),
+      });
+      const data = await res.json().catch(() => ({}));
+      return { ok: res.ok, status: res.status, data };
+    } catch (err) {
+      return { ok: false, status: 0, data: { error: (err as Error).message } };
+    }
+  }
+
+  // Resolve session ID — use provided or fall back to latest
+  let targetSession = sessionId;
+  if (!targetSession) {
+    const db = openDb();
+    if (!db) return;
+    const row = db.query<{ content_session_id: string; project: string; started_at: string }, []>(
+      `SELECT content_session_id, project, started_at FROM sdk_sessions ORDER BY started_at_epoch DESC LIMIT 1`
+    ).get();
+    db.close();
+    if (!row) {
+      console.log('\nNo sessions found in database.\n');
+      return;
+    }
+    targetSession = row.content_session_id;
+    console.log(`\n  Using latest session: ${row.project} (${row.started_at.slice(0, 16)})`);
+    console.log(`  Session ID: ${targetSession}`);
+  }
+
+  const id = targetSession;
+  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('  VibeLearn Sync — running analysis pipeline');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+  const steps: Array<{ label: string; path: string; body: Record<string, unknown> }> = [
+    { label: 'stack detection', path: '/api/vibelearn/analyze/stack', body: { contentSessionId: id } },
+    { label: 'static analysis', path: '/api/vibelearn/analyze/static', body: { contentSessionId: id } },
+    { label: 'concept extraction', path: '/api/vibelearn/analyze/concepts', body: { contentSessionId: id } },
+    { label: 'quiz generation', path: '/api/vibelearn/analyze/quiz', body: { contentSessionId: id } },
+    { label: 'cloud sync', path: '/api/vibelearn/sync', body: { contentSessionId: id } },
+  ];
+
+  for (const step of steps) {
+    process.stdout.write(`  ${step.label.padEnd(22)} ... `);
+    const result = await post(step.path, step.body);
+    if (result.ok) {
+      const d = result.data as Record<string, unknown>;
+      if (d.status === 'skipped') {
+        console.log(`skipped (${d.reason ?? 'unknown reason'})`);
+      } else {
+        console.log('ok');
+      }
+    } else if (result.status === 0) {
+      console.log('failed — worker not running? Start a session to restart it.');
+      break;
+    } else {
+      console.log(`failed (HTTP ${result.status})`);
+    }
+  }
+
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+}
+
 async function cmdLogin(apiKey: string | null, checkStatus: boolean): Promise<void> {
   if (checkStatus) {
     const config = loadConfig();
@@ -392,6 +465,10 @@ async function main(): Promise<void> {
       break;
     }
 
+    case 'sync':
+      await cmdSync(args[1] ?? null);
+      break;
+
     default:
       console.log(`
 VibeLearn CLI — learn from your coding sessions
@@ -401,6 +478,8 @@ Usage:
   vl quiz --session    Quiz only the last session's questions
   vl status            Sessions analyzed, concepts by category
   vl gaps              Concepts you haven't mastered yet
+  vl sync              Re-run analysis + cloud sync on latest session
+  vl sync <session-id> Re-run analysis + cloud sync on a specific session
   vl login <api-key>   Connect to vibelearn.dev
   vl login --status    Check login status
   vl --version         Show version
