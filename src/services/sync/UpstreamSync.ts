@@ -242,7 +242,7 @@ export class UpstreamSync {
       projectName, this.clientVersion, ide, this.apiKey, attempts
     );
 
-    const response = await fetch(`${this.apiUrl}/v1/sync`, {
+    const response = await fetch(`${this.apiUrl}/api/sync`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
@@ -270,7 +270,7 @@ export class UpstreamSync {
   async syncRawPayload(payloadJson: string): Promise<void> {
     if (!this.isConfigured()) return;
 
-    const response = await fetch(`${this.apiUrl}/v1/sync`, {
+    const response = await fetch(`${this.apiUrl}/api/sync`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
