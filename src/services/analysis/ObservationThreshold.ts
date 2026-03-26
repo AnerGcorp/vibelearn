@@ -16,7 +16,7 @@ import type { Database } from 'bun:sqlite';
  * Minimum number of file-write observations required before the
  * analysis pipeline will run for a session.
  */
-export const MIN_OBSERVATIONS_FOR_ANALYSIS = 3;
+export const MIN_OBSERVATIONS_FOR_ANALYSIS = 2;
 
 /**
  * Count file_write and file_edit observations for the given memory session.
