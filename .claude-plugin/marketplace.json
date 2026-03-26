@@ -13,7 +13,7 @@
       "name": "vibelearn",
       "version": "0.1.2",
       "source": "./plugin",
-      "description": "Learn from every coding session — automatically extracts concepts, generates adaptive quiz questions across 7 formats, and tracks mastery with spaced repetition.",
+      "description": "Learn from every coding session \u2014 automatically extracts concepts, generates adaptive quiz questions across 7 formats, and tracks mastery with spaced repetition.",
       "author": {
         "name": "Ahun Atajanov"
       },
@@ -29,7 +29,8 @@
         "mastery",
         "hooks",
         "education"
-      ]
+      ],
+      "updatedAt": "2026-03-26T16:34:54.000Z"
     }
   ]
 }

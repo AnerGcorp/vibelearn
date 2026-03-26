@@ -44,6 +44,7 @@ jobs:
         run: echo "⚠️ v${{ steps.version_check.outputs.version }} already on npm — skipping publish."
 
       # Keep marketplace.json in sync with package.json version
+      # Also bumps the updatedAt timestamp so Claude Code detects the new version
       - name: Sync marketplace.json version
         if: steps.version_check.outputs.already_published == 'false'
         run: |
@@ -53,8 +54,9 @@ jobs:
             const path = '.claude-plugin/marketplace.json';
             const m = JSON.parse(fs.readFileSync(path, 'utf-8'));
             m.plugins[0].version = '$PKG_VERSION';
+            m.plugins[0].updatedAt = new Date().toISOString();
             fs.writeFileSync(path, JSON.stringify(m, null, 2) + '\n');
-            console.log('Updated marketplace.json to v$PKG_VERSION');
+            console.log('Updated marketplace.json to v' + '$PKG_VERSION');
           "
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
