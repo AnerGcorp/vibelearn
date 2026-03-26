@@ -364,7 +364,18 @@ async function cmdSync(sessionId: string | null): Promise<void> {
   if (!targetSession) {
     const db = openDb();
     if (!db) return;
-    const row = db.query<{ content_session_id: string; project: string; started_at: string }, []>(
+    // Prefer the latest session that has actual observations (write-type)
+    // Fallback to absolute latest if none found with observations
+    const row = db.query<{ content_session_id: string; project: string; started_at: string }, []>(`
+      SELECT s.content_session_id, s.project, s.started_at
+      FROM sdk_sessions s
+      WHERE EXISTS (
+        SELECT 1 FROM observations o
+        WHERE o.memory_session_id = s.memory_session_id
+          AND o.type IN ('bugfix', 'feature', 'refactor', 'change')
+      )
+      ORDER BY s.started_at_epoch DESC LIMIT 1
+    `).get() ?? db.query<{ content_session_id: string; project: string; started_at: string }, []>(
       `SELECT content_session_id, project, started_at FROM sdk_sessions ORDER BY started_at_epoch DESC LIMIT 1`
     ).get();
     db.close();
