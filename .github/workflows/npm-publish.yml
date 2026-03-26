@@ -9,7 +9,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -42,3 +42,22 @@ jobs:
       - name: Skip (already published)
         if: steps.version_check.outputs.already_published == 'true'
         run: echo "⚠️ v${{ steps.version_check.outputs.version }} already on npm — skipping publish."
+
+      # Keep marketplace.json in sync with package.json version
+      - name: Sync marketplace.json version
+        if: steps.version_check.outputs.already_published == 'false'
+        run: |
+          PKG_VERSION=${{ steps.version_check.outputs.version }}
+          node -e "
+            const fs = require('fs');
+            const path = '.claude-plugin/marketplace.json';
+            const m = JSON.parse(fs.readFileSync(path, 'utf-8'));
+            m.plugins[0].version = '$PKG_VERSION';
+            fs.writeFileSync(path, JSON.stringify(m, null, 2) + '\n');
+            console.log('Updated marketplace.json to v$PKG_VERSION');
+          "
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .claude-plugin/marketplace.json
+          git diff --cached --quiet || git commit -m "chore: sync marketplace.json to v$PKG_VERSION [skip ci]"
+          git push origin HEAD:main
