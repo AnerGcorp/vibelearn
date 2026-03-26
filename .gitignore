@@ -36,3 +36,11 @@ src/ui/viewer.html
 .claude/session-intent.md
 .claude/session-plan.md
 .octo/
+
+# VibeLearn user-specific data — never commit these
+# Each user has their own at ~/.vibelearn/
+~/.vibelearn/
+*.db
+*.db-shm
+*.db-wal
+config.json
